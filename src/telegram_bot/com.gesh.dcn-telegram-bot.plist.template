@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd template for the DCN Telegram ChatOps bot.
+  Install with telegram_bot/install_launchd.sh (substitutes __SRC_DIR__ / __LOG_DIR__
+  and bootstraps the agent). Do not load this template directly.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gesh.dcn-telegram-bot</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__SRC_DIR__/telegram_bot/run.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__SRC_DIR__</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart only on a crash (non-zero exit). A clean exit 0 (no token yet)
+         leaves the service dormant instead of crash-looping. -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/dcn-telegram-bot.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/dcn-telegram-bot.err.log</string>
+</dict>
+</plist>

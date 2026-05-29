@@ -1,0 +1,3 @@
+# Telegram ChatOps bot — runtime dependencies (opt-in; not required by the DCN app)
+python-telegram-bot>=21.6
+httpx>=0.27
