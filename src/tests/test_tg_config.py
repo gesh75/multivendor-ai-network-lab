@@ -47,3 +47,22 @@ def test_config_is_immutable():
     cfg = BotConfig.from_env({"TELEGRAM_BOT_TOKEN": "t"})
     with pytest.raises(Exception):
         cfg.token = "tampered"  # frozen dataclass -> FrozenInstanceError
+
+
+def test_timeouts_parsed():
+    """Sourcery #7: request/ask timeout env vars are parsed as floats."""
+    cfg = BotConfig.from_env(
+        {
+            "TELEGRAM_BOT_TOKEN": "t",
+            "TELEGRAM_REQUEST_TIMEOUT": "12",
+            "TELEGRAM_ASK_TIMEOUT": "34",
+        }
+    )
+    assert cfg.request_timeout == 12.0
+    assert cfg.ask_timeout == 34.0
+
+
+def test_timeout_defaults():
+    cfg = BotConfig.from_env({"TELEGRAM_BOT_TOKEN": "t"})
+    assert cfg.request_timeout == 30.0
+    assert cfg.ask_timeout == 120.0

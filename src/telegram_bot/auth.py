@@ -71,7 +71,12 @@ class RateLimiter:
         self._hits: Dict[int, Deque[float]] = defaultdict(deque)
 
     def allow(self, chat_id: int) -> bool:
-        """Record an attempt; return True if it is within the limit, else False."""
+        """Record an attempt; return True if it is within the limit, else False.
+
+        A non-positive ``max_per_window`` disables rate limiting (so a mistyped
+        ``TELEGRAM_RATE_LIMIT_PER_MIN=0`` does not silently block every chat)."""
+        if self._max <= 0:
+            return True
         now = self._clock()
         bucket = self._hits[chat_id]
         cutoff = now - self._window

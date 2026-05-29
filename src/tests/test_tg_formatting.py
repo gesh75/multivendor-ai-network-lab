@@ -109,3 +109,29 @@ class TestFormatReport:
 class TestFormatError:
     def test_contains_message(self):
         assert "device unreachable" in format_error("device unreachable")
+
+
+class TestTruncateEdges:
+    def test_limit_zero_returns_empty(self):
+        assert truncate("hello", 0) == ""
+
+    def test_limit_one_no_ellipsis(self):
+        out = truncate("hello", 1)
+        assert out == "h"
+        assert "…" not in out
+
+
+class TestErrorDetection:
+    """Sourcery #1: falsy error values (""/0) must still be flagged as errors."""
+
+    def test_empty_string_error_is_flagged(self):
+        out = format_health({"error": ""})
+        assert out.startswith("⚠️")  # error path, not normal render
+
+    def test_zero_error_is_flagged(self):
+        out = format_sites({"error": 0})
+        assert out.startswith("⚠️")
+
+    def test_devices_error_is_flagged(self):
+        out = format_devices({"error": "boom"})
+        assert out.startswith("⚠️") and "boom" in out

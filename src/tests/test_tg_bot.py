@@ -152,6 +152,12 @@ class FakeErrorDCN(FakeDCN):
         raise DCNError("api down")
 
 
+class FakeAskErrorDCN(FakeDCN):
+    async def ask(self, prompt):
+        self.calls.append(("ask", prompt))
+        raise DCNError("orchestrator down")
+
+
 class FlakyMessage(FakeMessage):
     """Rejects the first Markdown send (BadRequest), accepts the plain retry."""
 
@@ -232,6 +238,46 @@ class TestCommandHandlers:
         upd = FakeUpdate(1, "/health")
         asyncio.run(bot.cmd_health(upd, FakeContext()))
         assert any("api down" in str(r) for r in upd.effective_message.replies)
+
+    def test_ask_handles_dcn_error_in_placeholder(self):
+        # Sourcery #3: /ask error branch edits the placeholder with the error.
+        dcn = FakeAskErrorDCN()
+        bot = self._ready_bot(dcn)
+        upd = FakeUpdate(1, "/ask boom")
+        asyncio.run(bot.cmd_ask(upd, FakeContext(["boom"])))
+        assert ("ask", "boom") in dcn.calls
+        placeholder = upd.effective_message.child
+        assert placeholder is not None
+        assert any("orchestrator down" in str(e) for e in placeholder.replies)
+
+
+class TestGuardEdgeCases:
+    """Sourcery #4: guard must handle updates missing chat / message."""
+
+    def test_none_chat_is_denied_without_crash(self):
+        bot = _bot(TELEGRAM_ALLOWED_CHAT_IDS="1")
+        called: list = []
+
+        async def inner(update, context):
+            called.append(True)
+
+        upd = FakeUpdate(1, "/health")
+        upd.effective_chat = None  # e.g. a channel/service update
+        asyncio.run(bot._guard(inner)(upd, None))
+        assert called == []
+        assert upd.effective_message.replies  # denial still sent
+
+    def test_none_message_does_not_crash(self):
+        bot = _bot(TELEGRAM_ALLOWED_CHAT_IDS="1")
+        called: list = []
+
+        async def inner(update, context):
+            called.append(True)
+
+        upd = FakeUpdate(999, "/health")  # unauthorized
+        upd.effective_message = None  # no message to reply to
+        asyncio.run(bot._guard(inner)(upd, None))  # must not raise
+        assert called == []
 
 
 class TestSendFallback:

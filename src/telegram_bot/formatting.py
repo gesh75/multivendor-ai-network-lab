@@ -28,14 +28,16 @@ def format_error(message: str) -> str:
 
 
 def _is_error(data: Any) -> str | None:
-    if isinstance(data, dict) and data.get("error"):
+    # Key presence, not truthiness: an API that returns {"error": ""} or
+    # {"error": 0} is still reporting an error and must not be rendered as data.
+    if isinstance(data, dict) and "error" in data:
         return str(data["error"])
     return None
 
 
 def format_health(data: dict) -> str:
     err = _is_error(data)
-    if err:
+    if err is not None:
         return format_error(f"DCN API error: {err}")
     status = str(data.get("status", "unknown"))
     icon = "✅" if status.lower() in {"ok", "healthy", "up"} else "⚠️"
@@ -61,7 +63,7 @@ def _as_list(data: Any, *keys: str) -> list:
 
 def format_sites(data: Any) -> str:
     err = _is_error(data)
-    if err:
+    if err is not None:
         return format_error(err)
     sites = _as_list(data, "sites")
     if not sites:
@@ -72,7 +74,7 @@ def format_sites(data: Any) -> str:
 
 def format_devices(data: Any, limit: int = 25) -> str:
     err = _is_error(data)
-    if err:
+    if err is not None:
         return format_error(err)
     devices = _as_list(data, "devices")
     if not devices:
@@ -97,7 +99,7 @@ def format_devices(data: Any, limit: int = 25) -> str:
 def format_ask(data: Any) -> str:
     """Render the orchestrator (/ask) response, preferring its rendered narrative."""
     err = _is_error(data)
-    if err:
+    if err is not None:
         return format_error(err)
     if isinstance(data, dict):
         for key in ("rendered", "output", "answer", "result", "summary"):
@@ -117,7 +119,7 @@ def format_report(title: str, data: Any) -> str:
     lists render as a count plus a pretty JSON preview, all length-capped.
     """
     err = _is_error(data)
-    if err:
+    if err is not None:
         return format_error(f"{title}: {err}")
     header = f"📊 *{title}*"
     if isinstance(data, dict):

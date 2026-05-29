@@ -92,3 +92,20 @@ class TestRateLimiter:
         assert rl.allow(1) is True
         assert rl.allow(2) is True  # different chat is unaffected
         assert rl.allow(1) is False
+
+
+class TestRateLimiterMisconfiguration:
+    """Sourcery #2: a non-positive limit must not silently block everyone.
+
+    Treat max_per_window <= 0 as 'no rate limit' (e.g. a mistyped
+    TELEGRAM_RATE_LIMIT_PER_MIN=0 should not brick the bot)."""
+
+    def test_zero_means_unlimited(self):
+        clock = [1000.0]
+        rl = RateLimiter(0, 60, clock=lambda: clock[0])
+        assert all(rl.allow(1) for _ in range(50))
+
+    def test_negative_means_unlimited(self):
+        rl = RateLimiter(-5, 60)
+        assert rl.allow(1) is True
+        assert rl.allow(1) is True

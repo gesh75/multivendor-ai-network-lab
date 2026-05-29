@@ -162,3 +162,22 @@ class TestErrorHandling:
 
         with pytest.raises(DCNError):
             run(go())
+
+
+class TestQueryParamCleaning:
+    """Sourcery #5: empty/None filter values must be dropped from the query."""
+
+    def test_empty_and_none_params_dropped(self):
+        seen = {}
+
+        def handler(req):
+            seen["q"] = dict(req.url.params)
+            return httpx.Response(200, json=[])
+
+        async def go():
+            async with make_client(handler) as c:
+                client = DCNClient(base_url="http://dcn", client=c)
+                return await client.list_devices(site="", role=None, search="")
+
+        run(go())
+        assert seen["q"] == {}  # nothing sent when all filters are empty
