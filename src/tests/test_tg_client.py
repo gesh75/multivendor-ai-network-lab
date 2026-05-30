@@ -164,6 +164,45 @@ class TestErrorHandling:
             run(go())
 
 
+class TestReportTimeout:
+    """Sourcery re-review #2: report_bgp / incident use the configurable
+    report_timeout rather than a hard-coded value."""
+
+    def test_report_bgp_uses_report_timeout(self):
+        seen = {}
+
+        class SpyClient(DCNClient):
+            async def _get(self, path, params=None, timeout=None):
+                seen["path"] = path
+                seen["timeout"] = timeout
+                return {}
+
+        async def go():
+            async with make_client(lambda r: httpx.Response(200, json={})) as c:
+                await SpyClient(base_url="http://dcn", client=c, report_timeout=99.0).report_bgp()
+
+        run(go())
+        assert seen["path"] == "/api/report/bgp"
+        assert seen["timeout"] == 99.0
+
+    def test_incident_uses_report_timeout(self):
+        seen = {}
+
+        class SpyClient(DCNClient):
+            async def _post(self, path, body, timeout=None):
+                seen["path"] = path
+                seen["timeout"] = timeout
+                return {}
+
+        async def go():
+            async with make_client(lambda r: httpx.Response(200, json={})) as c:
+                await SpyClient(base_url="http://dcn", client=c, report_timeout=99.0).incident("10.0.0.1")
+
+        run(go())
+        assert seen["path"] == "/api/incident"
+        assert seen["timeout"] == 99.0
+
+
 class TestQueryParamCleaning:
     """Sourcery #5: empty/None filter values must be dropped from the query."""
 

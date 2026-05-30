@@ -52,6 +52,26 @@ def is_admin(chat_id: int | None, admins: frozenset[int]) -> bool:
     return chat_id in admins
 
 
+def summarize_command(text: str, max_args_len: int = 24) -> str:
+    """Reduce a raw message to 'command + truncated args' for audit logging.
+
+    Keeps the command verb (e.g. ``/ask``) for auditability but truncates the
+    arguments, so a potentially sensitive ``/ask`` prompt is never recorded
+    verbatim in the logs.
+    """
+    text = (text or "").strip()
+    if not text:
+        return "(empty)"
+    parts = text.split(maxsplit=1)
+    command = parts[0]
+    if len(parts) == 1:
+        return command
+    args = parts[1]
+    if len(args) > max_args_len:
+        args = args[:max_args_len] + "…"
+    return f"{command} {args}"
+
+
 class RateLimiter:
     """Sliding-window per-chat rate limiter.
 

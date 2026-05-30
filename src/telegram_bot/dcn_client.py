@@ -33,6 +33,7 @@ class DCNClient:
     client: httpx.AsyncClient
     timeout: float = 30.0
     ask_timeout: float = 120.0
+    report_timeout: float = 300.0
 
     async def _get(self, path: str, params: dict | None = None,
                    timeout: float | None = None) -> Any:
@@ -80,11 +81,13 @@ class DCNClient:
         return await self._get("/api/mv/topology")
 
     async def report_bgp(self, site: str = "") -> Any:
-        return await self._get("/api/report/bgp", {"site": site}, timeout=300.0)
+        return await self._get(
+            "/api/report/bgp", {"site": site}, timeout=self.report_timeout
+        )
 
     async def incident(self, ip: str, dtype: str = "junos") -> Any:
         return await self._post(
-            "/api/incident", {"ip": ip, "dtype": dtype}, timeout=300.0
+            "/api/incident", {"ip": ip, "dtype": dtype}, timeout=self.report_timeout
         )
 
     # ── LLM Q&A (Phase 2) ────────────────────────────────────────────────────

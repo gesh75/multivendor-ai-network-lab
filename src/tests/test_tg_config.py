@@ -66,3 +66,12 @@ def test_timeout_defaults():
     cfg = BotConfig.from_env({"TELEGRAM_BOT_TOKEN": "t"})
     assert cfg.request_timeout == 30.0
     assert cfg.ask_timeout == 120.0
+
+
+def test_report_timeout_parsed_and_default():
+    """Sourcery re-review #2: the long-running report/incident timeout is configurable."""
+    cfg = BotConfig.from_env(
+        {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_REPORT_TIMEOUT": "45"}
+    )
+    assert cfg.report_timeout == 45.0
+    assert BotConfig.from_env({"TELEGRAM_BOT_TOKEN": "t"}).report_timeout == 300.0

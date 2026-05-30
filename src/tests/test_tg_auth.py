@@ -13,6 +13,7 @@ from telegram_bot.auth import (
     is_authorized,
     is_admin,
     RateLimiter,
+    summarize_command,
 )
 
 
@@ -109,3 +110,24 @@ class TestRateLimiterMisconfiguration:
         rl = RateLimiter(-5, 60)
         assert rl.allow(1) is True
         assert rl.allow(1) is True
+
+
+class TestSummarizeCommand:
+    """Sourcery re-review #3: audit logs keep the command but truncate args
+    so sensitive /ask prompts aren't recorded verbatim."""
+
+    def test_command_only(self):
+        assert summarize_command("/health") == "/health"
+
+    def test_short_args_kept(self):
+        assert summarize_command("/bgp DE-FRA") == "/bgp DE-FRA"
+
+    def test_long_args_truncated(self):
+        out = summarize_command("/ask " + "x" * 100, max_args_len=10)
+        assert out.startswith("/ask ")
+        assert out.endswith("…")
+        assert len(out) < 30
+
+    def test_empty_text(self):
+        assert summarize_command("") == "(empty)"
+        assert summarize_command("   ") == "(empty)"

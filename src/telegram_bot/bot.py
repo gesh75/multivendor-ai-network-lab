@@ -27,7 +27,7 @@ from telegram.constants import ParseMode
 from telegram.error import BadRequest
 from telegram.ext import Application, ApplicationBuilder, CommandHandler, ContextTypes
 
-from .auth import RateLimiter, is_authorized
+from .auth import RateLimiter, is_authorized, summarize_command
 from .config import BotConfig
 from .dcn_client import DCNClient, DCNError
 from . import formatting as fmt
@@ -96,6 +96,7 @@ class ChatOpsBot:
             client=client,
             timeout=self.config.request_timeout,
             ask_timeout=self.config.ask_timeout,
+            report_timeout=self.config.report_timeout,
         )
         await app.bot.set_my_commands(_COMMANDS)
         log.info("ChatOps bot online — DCN API %s", self.config.dcn_api_url)
@@ -115,9 +116,10 @@ class ChatOpsBot:
             who = (user.username or user.full_name) if user else "?"
             msg = update.effective_message
             text = (msg.text if msg else "") or ""
+            audit = summarize_command(text)  # command kept, args truncated
 
             if not is_authorized(chat_id, self.config.allowed_chat_ids):
-                log.warning("DENIED chat_id=%s user=%s cmd=%r", chat_id, who, text)
+                log.warning("DENIED chat_id=%s user=%s cmd=%r", chat_id, who, audit)
                 if msg:
                     await msg.reply_text("⛔ Not authorized for this bot.")
                 return
@@ -126,7 +128,7 @@ class ChatOpsBot:
                 if msg:
                     await msg.reply_text("⏳ Rate limit reached — try again shortly.")
                 return
-            log.info("CMD chat_id=%s user=%s cmd=%r", chat_id, who, text)
+            log.info("CMD chat_id=%s user=%s cmd=%r", chat_id, who, audit)
             await handler(update, context)
 
         return wrapper

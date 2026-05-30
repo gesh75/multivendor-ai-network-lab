@@ -287,3 +287,24 @@ class TestSendFallback:
         upd.effective_message = FlakyMessage()
         asyncio.run(bot._send(upd, "*markdown*"))
         assert "*markdown*" in upd.effective_message.replies
+
+
+class TestAuditLogRedaction:
+    """Sourcery re-review #3: the audit log keeps the command but not the full
+    (possibly sensitive) /ask prompt."""
+
+    def test_ask_prompt_not_logged_verbatim(self, caplog):
+        import logging
+
+        bot = _bot(TELEGRAM_ALLOWED_CHAT_IDS="1")
+
+        async def inner(update, context):
+            pass
+
+        upd = FakeUpdate(1, "/ask " + "a" * 40 + "SECRETTAIL")
+        with caplog.at_level(logging.INFO):
+            asyncio.run(bot._guard(inner)(upd, None))
+
+        logged = " ".join(r.getMessage() for r in caplog.records)
+        assert "/ask" in logged          # command preserved for auditability
+        assert "SECRETTAIL" not in logged  # long/sensitive tail truncated away

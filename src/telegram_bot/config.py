@@ -25,6 +25,7 @@ class BotConfig:
     rate_limit_per_min: int = 20
     request_timeout: float = 30.0
     ask_timeout: float = 120.0
+    report_timeout: float = 300.0
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "BotConfig":
@@ -42,4 +43,5 @@ class BotConfig:
             rate_limit_per_min=int(env.get("TELEGRAM_RATE_LIMIT_PER_MIN", "20")),
             request_timeout=float(env.get("TELEGRAM_REQUEST_TIMEOUT", "30")),
             ask_timeout=float(env.get("TELEGRAM_ASK_TIMEOUT", "120")),
+            report_timeout=float(env.get("TELEGRAM_REPORT_TIMEOUT", "300")),
         )
