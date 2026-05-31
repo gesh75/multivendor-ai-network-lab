@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/hero.svg" alt="multivendor-ai-network-lab — architecture" width="100%"></p>
+
 # Multivendor AI Network Lab
 
 > **🛰 Phase 4 (May 2026) — the closed-loop phase:** Health Gate (RFC 6241 §8.4
@@ -96,15 +98,49 @@ All sanitized configs use RFC 5737 / RFC 1918 ranges and placeholder credentials
 Real public ASNs (3356 / 13335 / 15169 / 16509) are retained because they're
 public Internet routing data — useful for realism in BGP demos.
 
-## Architecture
+## 🏛️ Architecture
 
-Animated 8-layer architecture diagram (open locally — `demo/architecture.html`):
+The lab is a closed loop: humans (web UI / Telegram) and AI agents (Claude Code
+over a 64-tool MCP server) drive a Flask monolith on `:5757` whose core is a
+vendor-neutral driver layer; changes flow through a governed
+**Predict → Blast Radius → Health Gate → Watch → Verify** pipeline with
+auto-rollback, while telemetry streams to InfluxDB/Grafana.
 
-> Reference projects → 26 devices → Transport → Flask + MCP server →
-> AI orchestration & 8 Phase 3 tools → LLM backbone → 12 demo UI tabs → Storage
+```mermaid
+flowchart TB
+    operator(["👤 NOC Operator<br/>web UI · Telegram"]):::actor
+    agents(["🤖 Claude Code<br/>via MCP · 64 tools"]):::actor
 
-Open `http://localhost:5757/demo/architecture.html` after starting the Flask app
-to see it animated.
+    system{{"🛰️ multivendor-ai-network-lab<br/>Flask :5757 · closed-loop ops"}}:::core
+
+    labs["🧪 Two Labs<br/>CLOS EVPN-VXLAN + FRR backbone<br/>SRL · cEOS · FRR · Junos"]:::infra
+    anthropic["🧠 Anthropic API<br/>claude-haiku-4-5"]:::ai
+    tsdb["📊 InfluxDB 2.7<br/>+ Grafana 10.4"]:::data
+    sot["🗂️ NetBox / Batfish<br/>SoT · verification"]:::data
+
+    operator -->|"symptoms · changes"| system
+    agents -->|"tool calls"| system
+    system -->|"docker-exec · SSH"| labs
+    system -->|"diagnose · judge"| anthropic
+    system -->|"line protocol"| tsdb
+    system -->|"drift · what-if"| sot
+    labs -.->|"live state"| system
+
+    classDef actor fill:#475569,stroke:#94a3b8,color:#fff
+    classDef core fill:#3b82f6,stroke:#60a5fa,color:#fff
+    classDef infra fill:#0ea5e9,stroke:#38bdf8,color:#fff
+    classDef ai fill:#7c3aed,stroke:#a78bfa,color:#fff
+    classDef data fill:#059669,stroke:#34d399,color:#fff
+```
+
+📐 **Full architecture** — six colorful Mermaid diagrams (system context,
+component map, closed-loop sequence, telemetry data flow, driver class map,
+Health Gate state machine) + animated hero: **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**.
+
+You can also open the animated 8-layer in-app diagram at
+`http://localhost:5757/demo/architecture.html` after starting the Flask app
+(Reference projects → 26 devices → Transport → Flask + MCP server →
+AI orchestration → LLM backbone → demo UI tabs → Storage).
 
 ## Quick start
 

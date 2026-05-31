@@ -1,0 +1,191 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="heroTitle heroDesc" fill="none" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <title id="heroTitle">multivendor-ai-network-lab — architecture</title>
+  <desc id="heroDesc">Animated NOC banner: a CLOS spine-leaf fabric of Nokia SR Linux, Arista cEOS, and FRR nodes with packets streaming across eBGP underlay and EVPN overlay links, an orbiting closed-loop ring tracing Observe to Decide to Act to Verify, and an MCP node emitting tool-call sparks into the AI orchestrator.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b16"/>
+      <stop offset="0.55" stop-color="#0a0e1a"/>
+      <stop offset="1" stop-color="#0c1426"/>
+    </linearGradient>
+    <radialGradient id="vign" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0" stop-color="#0e1730" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#070b16" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff"/>
+      <stop offset="0.5" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="underline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff"/>
+      <stop offset="0.5" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="ledger" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#14b8a6" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#14b8a6" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#14b8a6" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#1b2540" stroke-width="1" opacity="0.5"/>
+    </pattern>
+
+    <style>
+      @keyframes pulse  { 0%,100%{opacity:.5} 50%{opacity:1} }
+      @keyframes corepulse { 0%,100%{opacity:.55; transform:scale(1)} 50%{opacity:1; transform:scale(1.06)} }
+      @keyframes drawline { to { stroke-dashoffset: 0 } }
+      @keyframes flicker { 0%,100%{opacity:.25} 50%{opacity:.6} }
+      @keyframes spark { 0%{opacity:0} 12%{opacity:1} 60%{opacity:.2} 100%{opacity:0} }
+
+      .node      { transform-box: fill-box; transform-origin: center; }
+      .pulse     { animation: pulse 2.8s ease-in-out infinite; }
+      .p2 { animation-delay:.4s } .p3 { animation-delay:.8s } .p4 { animation-delay:1.2s }
+      .p5 { animation-delay:1.6s } .p6 { animation-delay:2.0s }
+      .core      { animation: corepulse 3.4s ease-in-out infinite; }
+      .grid      { animation: flicker 7s ease-in-out infinite; }
+      .spark     { animation: spark 2.2s ease-in-out infinite; }
+      .underline { stroke-dasharray: 360; stroke-dashoffset: 360; animation: drawline 1.7s ease-out .35s forwards; }
+
+      .label { fill:#e2e8f0; font-size:11px; font-weight:600; letter-spacing:.2px; }
+      .sub   { fill:#94a3b8; }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { animation: none !important; }
+        .underline { stroke-dashoffset: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1200" height="360" fill="url(#bg)"/>
+  <rect width="1200" height="360" fill="url(#grid)" class="grid"/>
+  <rect width="1200" height="360" fill="url(#vign)"/>
+
+  <!-- ============ FABRIC PANEL (left) ============ -->
+  <!-- underlay + overlay connector links (spines top, leafs below) -->
+  <g stroke-width="1.6" fill="none" opacity="0.8">
+    <!-- spine1 -> leafs -->
+    <path id="l11" d="M150 92 C 150 150, 110 175, 95 205"  stroke="#1f3a5c"/>
+    <path id="l12" d="M150 92 C 150 150, 230 175, 250 205" stroke="#1f3a5c"/>
+    <path id="l13" d="M150 92 C 170 150, 360 175, 405 205" stroke="#1f3a5c"/>
+    <!-- spine2 -> leafs -->
+    <path id="l21" d="M295 92 C 250 150, 130 175, 95 205"  stroke="#243a66"/>
+    <path id="l22" d="M295 92 C 295 150, 270 175, 250 205" stroke="#243a66"/>
+    <path id="l23" d="M295 92 C 320 150, 380 175, 405 205" stroke="#243a66"/>
+    <!-- spine3 -> leafs -->
+    <path id="l31" d="M440 92 C 400 150, 130 175, 95 205"  stroke="#33305c"/>
+    <path id="l32" d="M440 92 C 380 150, 280 175, 250 205" stroke="#33305c"/>
+    <path id="l33" d="M440 92 C 440 150, 420 175, 405 205" stroke="#33305c"/>
+  </g>
+
+  <!-- EVPN overlay arc spine-to-spine (multihop loopback peering) -->
+  <path id="ov1" d="M150 76 C 220 30, 370 30, 440 76" stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="3 5" opacity="0.7"/>
+
+  <!-- streaming packets along underlay (cyan -> blue -> violet) -->
+  <circle r="3.2" fill="#00e5ff" filter="url(#glow)"><animateMotion dur="2.4s" repeatCount="indefinite" rotate="auto"><mpath href="#l12"/></animateMotion></circle>
+  <circle r="3.2" fill="#3b82f6" filter="url(#glow)"><animateMotion dur="2.6s" begin="0.5s" repeatCount="indefinite"><mpath href="#l22"/></animateMotion></circle>
+  <circle r="3.2" fill="#8b5cf6" filter="url(#glow)"><animateMotion dur="2.8s" begin="1.0s" repeatCount="indefinite"><mpath href="#l33"/></animateMotion></circle>
+  <circle r="3.2" fill="#00e5ff" filter="url(#glow)"><animateMotion dur="2.5s" begin="1.4s" repeatCount="indefinite"><mpath href="#l13"/></animateMotion></circle>
+  <circle r="3.2" fill="#3b82f6" filter="url(#glow)"><animateMotion dur="2.7s" begin="0.9s" repeatCount="indefinite"><mpath href="#l31"/></animateMotion></circle>
+  <!-- EVPN overlay packet (magenta) -->
+  <circle r="2.8" fill="#f472b6" filter="url(#glow)"><animateMotion dur="3.0s" begin="0.3s" repeatCount="indefinite" rotate="auto"><mpath href="#ov1"/></animateMotion></circle>
+
+  <!-- spine nodes (vendor-tinted) -->
+  <g class="node core" filter="url(#glow)"><circle cx="150" cy="76" r="15" fill="#8b5cf6"/></g>
+  <g class="node core p2" filter="url(#glow)"><circle cx="295" cy="76" r="15" fill="#3b82f6"/></g>
+  <g class="node core p4" filter="url(#glow)"><circle cx="440" cy="76" r="15" fill="#00e5ff"/></g>
+  <text x="150" y="50" text-anchor="middle" class="label sub" font-size="10">spine1 · SRL</text>
+  <text x="295" y="50" text-anchor="middle" class="label sub" font-size="10">spine2 · cEOS</text>
+  <text x="440" y="50" text-anchor="middle" class="label sub" font-size="10">spine3 · FRR</text>
+
+  <!-- leaf nodes -->
+  <g class="node pulse"    filter="url(#glow)"><rect x="73"  y="210" width="44" height="26" rx="7" fill="#3b82f6" opacity="0.92"/></g>
+  <g class="node pulse p3" filter="url(#glow)"><rect x="228" y="210" width="44" height="26" rx="7" fill="#8b5cf6" opacity="0.92"/></g>
+  <g class="node pulse p5" filter="url(#glow)"><rect x="383" y="210" width="44" height="26" rx="7" fill="#00e5ff" opacity="0.92"/></g>
+  <text x="95"  y="227" text-anchor="middle" class="label" font-size="9.5" fill="#0a0e1a">leaf1</text>
+  <text x="250" y="227" text-anchor="middle" class="label" font-size="9.5" fill="#fff">leaf3</text>
+  <text x="405" y="227" text-anchor="middle" class="label" font-size="9.5" fill="#0a0e1a">leaf5</text>
+  <text x="250" y="255" text-anchor="middle" class="label sub" font-size="10">CLOS EVPN-VXLAN fabric</text>
+
+  <!-- ============ CLOSED-LOOP RING (center) ============ -->
+  <g transform="translate(610 150)">
+    <circle r="58" fill="none" stroke="#14213d" stroke-width="9"/>
+    <!-- teal confirmed-commit pulse racing the ring -->
+    <circle r="58" fill="none" stroke="#14b8a6" stroke-width="3.5" stroke-linecap="round"
+            stroke-dasharray="46 318" filter="url(#softglow)" transform="rotate(-90)">
+      <animateTransform attributeName="transform" type="rotate" from="-90" to="270" dur="4.2s" repeatCount="indefinite"/>
+    </circle>
+    <!-- stage dots -->
+    <circle cx="0"   cy="-58" r="4" fill="#00e5ff" class="node pulse"/>
+    <circle cx="58"  cy="0"   r="4" fill="#3b82f6" class="node pulse p2"/>
+    <circle cx="0"   cy="58"  r="4" fill="#14b8a6" class="node pulse p4"/>
+    <circle cx="-58" cy="0"   r="4" fill="#8b5cf6" class="node pulse p6"/>
+    <text x="0"   y="-70" text-anchor="middle" class="label sub" font-size="9">OBSERVE</text>
+    <text x="84"  y="3"   text-anchor="middle" class="label sub" font-size="9">DECIDE</text>
+    <text x="0"   y="80"  text-anchor="middle" class="label sub" font-size="9">VERIFY</text>
+    <text x="-84" y="3"   text-anchor="middle" class="label sub" font-size="9">ACT</text>
+    <text x="0" y="-4" text-anchor="middle" class="label" font-size="11" fill="#14b8a6">Health Gate</text>
+    <text x="0" y="11" text-anchor="middle" class="label sub" font-size="9">confirmed-commit</text>
+  </g>
+
+  <!-- ============ AI ORCHESTRATOR + MCP (right) ============ -->
+  <!-- link fabric -> orchestrator -->
+  <path id="feed" d="M470 150 C 540 150, 560 150, 552 150" stroke="#1f3a5c" stroke-width="1.4" fill="none" opacity="0.6"/>
+  <!-- link ring -> orchestrator -->
+  <path id="toai" d="M668 130 C 760 100, 830 110, 905 110" stroke="#243a66" stroke-width="1.4" fill="none" opacity="0.7"/>
+  <circle r="3" fill="#3b82f6" filter="url(#glow)"><animateMotion dur="2.6s" repeatCount="indefinite" rotate="auto"><mpath href="#toai"/></animateMotion></circle>
+
+  <!-- MCP node + tool-call sparks into orchestrator -->
+  <path id="mcpspark" d="M1062 250 C 1010 210, 980 170, 952 132" stroke="#33305c" stroke-width="1.2" fill="none" opacity="0.55"/>
+  <circle r="2.6" fill="#f472b6" filter="url(#glow)"><animateMotion dur="1.9s" repeatCount="indefinite"><mpath href="#mcpspark"/></animateMotion></circle>
+  <circle r="2.6" fill="#8b5cf6" filter="url(#glow)"><animateMotion dur="1.9s" begin="0.95s" repeatCount="indefinite"><mpath href="#mcpspark"/></animateMotion></circle>
+
+  <g class="node core p3" filter="url(#softglow)"><rect x="900" y="86" width="118" height="48" rx="11" fill="#7c3aed" opacity="0.95"/></g>
+  <text x="959" y="106" text-anchor="middle" class="label" font-size="11.5" fill="#fff">AI Orchestrator</text>
+  <text x="959" y="121" text-anchor="middle" class="label" font-size="9" fill="#ddd6fe">Pydantic · Anthropic</text>
+
+  <g class="node pulse p5" filter="url(#glow)"><rect x="1018" y="234" width="92" height="34" rx="9" fill="#f472b6" opacity="0.92"/></g>
+  <text x="1064" y="255" text-anchor="middle" class="label" font-size="10" fill="#1a0a14">MCP · 64 tools</text>
+  <g class="spark"><circle cx="1064" cy="234" r="2.5" fill="#f472b6"/></g>
+
+  <!-- driver layer chip -->
+  <g class="node pulse p4" filter="url(#glow)"><rect x="548" y="244" width="124" height="30" rx="8" fill="#0ea5e9" opacity="0.9"/></g>
+  <text x="610" y="263" text-anchor="middle" class="label" font-size="9.5" fill="#03121f">Driver Layer · DriverResult</text>
+
+  <!-- GAIT immutable ledger line scrolling beneath -->
+  <line x1="60" y1="312" x2="1140" y2="312" stroke="#14213d" stroke-width="1"/>
+  <rect x="0" y="309" width="260" height="6" rx="3" fill="url(#ledger)">
+    <animate attributeName="x" from="-260" to="1200" dur="6.5s" repeatCount="indefinite"/>
+  </rect>
+  <text x="62" y="328" class="label sub" font-size="9">GAIT immutable audit · append-only JSONL · token cost per action</text>
+
+  <!-- ============ TITLE BLOCK ============ -->
+  <text x="600" y="44" text-anchor="middle" font-size="13" font-weight="600" letter-spacing="4" fill="#64748b">CLOSED-LOOP MULTI-VENDOR NETWORK OPS</text>
+
+  <!-- Title sits lower-center, kept clear of fabric panel -->
+  <g transform="translate(0 0)">
+    <text x="780" y="178" text-anchor="middle" font-size="40" font-weight="800" fill="url(#title)">multivendor-ai-network-lab</text>
+    <path class="underline" d="M610 196 H950" stroke="url(#underline)" stroke-width="3" stroke-linecap="round"/>
+    <text x="780" y="220" text-anchor="middle" font-size="14" class="sub">Predict → Blast Radius → Health Gate → Watch → Verify · auto-rollback</text>
+  </g>
+
+  <!-- tech chips -->
+  <g font-size="10" font-weight="600">
+    <g><rect x="560" y="285" width="62" height="18" rx="9" fill="#0e1730" stroke="#00e5ff" stroke-opacity="0.5"/><text x="591" y="297" text-anchor="middle" fill="#67e8f9">FRR</text></g>
+    <g><rect x="628" y="285" width="74" height="18" rx="9" fill="#0e1730" stroke="#3b82f6" stroke-opacity="0.5"/><text x="665" y="297" text-anchor="middle" fill="#93c5fd">Arista EOS</text></g>
+    <g><rect x="708" y="285" width="78" height="18" rx="9" fill="#0e1730" stroke="#8b5cf6" stroke-opacity="0.5"/><text x="747" y="297" text-anchor="middle" fill="#c4b5fd">Nokia SRL</text></g>
+    <g><rect x="792" y="285" width="60" height="18" rx="9" fill="#0e1730" stroke="#f472b6" stroke-opacity="0.5"/><text x="822" y="297" text-anchor="middle" fill="#f9a8d4">Junos</text></g>
+    <g><rect x="858" y="285" width="74" height="18" rx="9" fill="#0e1730" stroke="#14b8a6" stroke-opacity="0.5"/><text x="895" y="297" text-anchor="middle" fill="#5eead4">Flask :5757</text></g>
+  </g>
+</svg>
