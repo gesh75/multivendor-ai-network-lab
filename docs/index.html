@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>multivendor-ai-network-lab — Closed-Loop Multi-Vendor Network Ops</title>
+<meta name="description" content="A 26-device multivendor (Juniper / Arista / FRR) network operations lab driven by a Pydantic-AI orchestrator, eval harness, and immutable AI audit trail. Closed-loop observe → diagnose → remediate → verify → document with RFC 6241 confirmed-commit safety.">
+<style>
+  :root{
+    --bg0:#070b16; --bg1:#0b1020; --bg2:#131a2e;
+    --cyan:#5eead4; --blue:#60a5fa; --violet:#a78bfa; --pink:#f472b6; --teal:#14b8a6;
+    --ink:#e6ecff; --muted:#9aa7c7; --dim:#6b779b;
+    --card:rgba(255,255,255,.045); --cardb:rgba(255,255,255,.10);
+    --glow:0 0 0 1px rgba(96,165,250,.12), 0 18px 50px -18px rgba(94,234,212,.30);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; font-family:var(--sans); color:var(--ink); line-height:1.65;
+    background:
+      radial-gradient(1100px 620px at 78% -8%, rgba(167,139,250,.16), transparent 60%),
+      radial-gradient(900px 540px at 8% 4%, rgba(94,234,212,.13), transparent 58%),
+      radial-gradient(1000px 700px at 50% 108%, rgba(96,165,250,.12), transparent 60%),
+      linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 60%, var(--bg0) 100%);
+    background-attachment:fixed; min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:
+      linear-gradient(rgba(123,151,210,.045) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(123,151,210,.045) 1px,transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(1200px 800px at 50% 0%,#000,transparent 75%);
+  }
+  a{color:var(--cyan); text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3{line-height:1.15; margin:0}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px; position:relative; z-index:1}
+  .grad{
+    background:linear-gradient(100deg,var(--cyan),var(--blue) 48%,var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  /* ---- skip link ---- */
+  .skip{position:absolute; left:-9999px; top:0; z-index:200; background:var(--bg2);
+    color:var(--ink); padding:10px 16px; border-radius:0 0 10px 0; border:1px solid var(--cardb)}
+  .skip:focus{left:0}
+
+  :focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:6px}
+
+  /* ---- scroll progress ---- */
+  #progress{position:fixed; top:0; left:0; height:3px; width:0; z-index:120;
+    background:linear-gradient(90deg,var(--cyan),var(--blue),var(--violet));
+    box-shadow:0 0 12px rgba(96,165,250,.6)}
+
+  /* ---- nav ---- */
+  header.nav{position:sticky; top:0; z-index:100;
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    background:rgba(8,12,22,.72); border-bottom:1px solid rgba(255,255,255,.07)}
+  .navrow{display:flex; align-items:center; gap:18px; height:60px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; white-space:nowrap}
+  .brand .dot{width:11px; height:11px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,var(--cyan),var(--violet));
+    box-shadow:0 0 12px var(--cyan); animation:pulsedot 2.6s ease-in-out infinite}
+  nav.links{display:flex; gap:4px; margin-left:auto; flex-wrap:wrap}
+  nav.links a{color:var(--muted); font-size:13.5px; font-weight:600; padding:7px 11px;
+    border-radius:9px; position:relative; transition:color .25s, background .25s}
+  nav.links a::after{content:""; position:absolute; left:11px; right:11px; bottom:3px; height:2px;
+    background:linear-gradient(90deg,var(--cyan),var(--violet)); transform:scaleX(0);
+    transform-origin:left; transition:transform .28s ease}
+  nav.links a:hover{color:var(--ink); text-decoration:none}
+  nav.links a.active{color:var(--ink)}
+  nav.links a.active::after{transform:scaleX(1)}
+  .menu-btn{display:none; margin-left:auto; background:var(--card); border:1px solid var(--cardb);
+    color:var(--ink); font-size:20px; border-radius:10px; width:42px; height:38px; cursor:pointer}
+
+  /* ---- sections ---- */
+  section{padding:84px 0 30px; position:relative}
+  .eyebrow{font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+    color:var(--cyan); margin-bottom:10px}
+  h2.sect{font-size:clamp(26px,4vw,40px); font-weight:800; margin-bottom:14px; letter-spacing:-.5px}
+  .lede{color:var(--muted); max-width:780px; font-size:17px}
+
+  /* ---- hero ---- */
+  .hero{padding-top:46px}
+  .hero-card{position:relative; border-radius:24px; overflow:hidden;
+    border:1px solid var(--cardb); background:rgba(8,12,22,.5);
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.8)}
+  .hero-svg{position:absolute; inset:0; width:100%; height:100%; opacity:.28}
+  .hero-svg svg{width:100%; height:100%; object-fit:cover}
+  /* the inlined banner SVG carries its own title/tagline/labels — hide them so the
+     crisp HTML hero is the single source of text; keep only the animated topology + packets as a backdrop */
+  .hero-svg svg text, .hero-svg svg .underline{display:none !important}
+  .hero-inner{position:relative; z-index:2; padding:62px 40px 48px;
+    background:linear-gradient(180deg,rgba(7,11,22,.5) 0%,rgba(7,11,22,.72) 62%,rgba(7,11,22,.92) 100%)}
+  .hero h1{font-size:clamp(30px,6vw,58px); font-weight:900; letter-spacing:-1.4px; margin-bottom:14px;
+    text-shadow:0 2px 30px rgba(0,0,0,.55)}
+  .tagline{font-size:clamp(15px,2.4vw,20px); color:#cdd7f4; max-width:760px; margin-bottom:26px;
+    text-shadow:0 1px 14px rgba(0,0,0,.6)}
+  .chips{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:30px}
+  .chip{display:flex; flex-direction:column; gap:2px; padding:11px 16px; min-width:96px;
+    border-radius:14px; border:1px solid var(--cardb); background:rgba(10,16,30,.62);
+    backdrop-filter:blur(8px)}
+  .chip .num{font-size:24px; font-weight:850; font-variant-numeric:tabular-nums;
+    background:linear-gradient(100deg,var(--cyan),var(--blue) 55%,var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .chip .lab{font-size:11px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase}
+  .cta{display:flex; flex-wrap:wrap; gap:14px}
+  .btn{display:inline-flex; align-items:center; gap:9px; font-weight:700; font-size:15px;
+    padding:13px 22px; border-radius:13px; cursor:pointer; border:1px solid transparent; transition:transform .2s, box-shadow .2s, background .2s}
+  .btn:hover{transform:translateY(-2px); text-decoration:none}
+  .btn-primary{color:#05121f;
+    background:linear-gradient(100deg,var(--cyan),var(--blue) 60%,var(--violet));
+    box-shadow:0 12px 32px -10px rgba(96,165,250,.6)}
+  .btn-primary:hover{box-shadow:0 16px 40px -10px rgba(167,139,250,.7)}
+  .btn-ghost{color:var(--ink); border-color:var(--cardb); background:var(--card)}
+  .btn-ghost:hover{border-color:var(--cyan); box-shadow:0 0 0 1px rgba(94,234,212,.3)}
+
+  /* ---- cards ---- */
+  .grid{display:grid; gap:18px}
+  .feat-grid{grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
+  .card{background:var(--card); border:1px solid var(--cardb); border-radius:16px; padding:22px;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease}
+  .card:hover{transform:translateY(-5px); border-color:rgba(94,234,212,.4); box-shadow:var(--glow)}
+  .card .ico{font-size:30px; margin-bottom:12px; display:block; filter:drop-shadow(0 4px 12px rgba(96,165,250,.4))}
+  .card h3{font-size:18px; margin-bottom:8px; font-weight:750}
+  .card p{color:var(--muted); font-size:14.5px; margin:0}
+
+  /* ---- reveal ---- */
+  .reveal{opacity:0; transform:translateY(26px); transition:opacity .6s ease, transform .6s ease}
+  .reveal.in{opacity:1; transform:none}
+
+  /* ---- mermaid ---- */
+  .diagram{background:rgba(8,12,22,.55); border:1px solid var(--cardb); border-radius:18px;
+    padding:20px; margin-top:18px; overflow-x:auto}
+  .diagram h3{font-size:16px; font-weight:700; color:var(--cyan); margin-bottom:4px}
+  .diagram .dcap{color:var(--muted); font-size:13.5px; margin:0 0 14px}
+  .mermaid{text-align:center; min-height:40px}
+  .diag-2{grid-template-columns:repeat(auto-fit,minmax(440px,1fr)); align-items:start}
+
+  /* ---- tech stack ---- */
+  .stack{display:flex; flex-wrap:wrap; gap:11px}
+  .tag{font-size:13.5px; font-weight:650; padding:9px 15px; border-radius:11px;
+    border:1px solid var(--cardb); background:rgba(255,255,255,.04); color:#cfd9f6;
+    transition:transform .2s, border-color .2s, color .2s}
+  .tag:hover{transform:translateY(-2px); border-color:var(--blue); color:#fff}
+
+  /* ---- components table ---- */
+  .tbl-wrap{overflow-x:auto; border:1px solid var(--cardb); border-radius:16px; background:rgba(8,12,22,.4)}
+  table{border-collapse:collapse; width:100%; min-width:680px}
+  th,td{text-align:left; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:top}
+  th{font-size:12px; letter-spacing:.6px; text-transform:uppercase; color:var(--cyan); font-weight:700}
+  tbody tr{transition:background .2s}
+  tbody tr:hover{background:rgba(96,165,250,.06)}
+  td code{font-family:var(--mono); font-size:13px; color:var(--cyan); white-space:nowrap}
+  td .resp{color:var(--muted); font-size:14px}
+  td .t{display:inline-block; margin-top:6px; font-size:11.5px; color:var(--violet);
+    border:1px solid rgba(167,139,250,.3); border-radius:8px; padding:2px 8px}
+
+  /* ---- quickstart ---- */
+  .code{position:relative; background:#070c18; border:1px solid var(--cardb); border-radius:14px;
+    padding:18px 18px 18px 20px; margin-top:16px; overflow-x:auto}
+  .code pre{margin:0; font-family:var(--mono); font-size:13.5px; color:#d6e2ff; line-height:1.8}
+  .code .ln{color:var(--cyan); user-select:none}
+  .code .cm{color:var(--dim)}
+  .copy{position:absolute; top:12px; right:12px; background:var(--card); border:1px solid var(--cardb);
+    color:var(--muted); font-size:12px; font-weight:650; padding:6px 12px; border-radius:9px; cursor:pointer;
+    transition:color .2s, border-color .2s, background .2s}
+  .copy:hover{color:var(--ink); border-color:var(--cyan)}
+  .copy.ok{color:var(--cyan); border-color:var(--cyan)}
+  .note{margin-top:18px; font-size:14px; color:var(--muted); border-left:3px solid var(--violet);
+    padding:4px 0 4px 16px; background:rgba(167,139,250,.05); border-radius:0 8px 8px 0}
+
+  /* ---- footer ---- */
+  footer{margin-top:60px; border-top:1px solid rgba(255,255,255,.08); padding:40px 0 60px}
+  .frow{display:flex; flex-wrap:wrap; gap:30px; justify-content:space-between; align-items:flex-start}
+  footer .links2{display:flex; flex-wrap:wrap; gap:18px}
+  footer .links2 a{color:var(--muted); font-weight:600; font-size:14px}
+  footer .links2 a:hover{color:var(--cyan)}
+  .auto{color:var(--dim); font-size:12.5px; margin-top:14px; max-width:560px}
+
+  /* ---- back to top ---- */
+  #top{position:fixed; bottom:26px; right:26px; z-index:90; width:48px; height:48px; border-radius:50%;
+    border:1px solid var(--cardb); background:rgba(10,16,30,.85); color:var(--cyan); font-size:20px;
+    cursor:pointer; opacity:0; pointer-events:none; transition:opacity .3s, transform .3s;
+    backdrop-filter:blur(8px); box-shadow:0 8px 24px -8px rgba(0,0,0,.7)}
+  #top.show{opacity:1; pointer-events:auto}
+  #top:hover{transform:translateY(-3px); box-shadow:0 0 0 1px rgba(94,234,212,.4)}
+
+  @keyframes pulsedot{0%,100%{opacity:.7; box-shadow:0 0 8px var(--cyan)} 50%{opacity:1; box-shadow:0 0 16px var(--violet)}}
+
+  @media(max-width:820px){
+    nav.links{display:none; position:absolute; top:60px; left:0; right:0; flex-direction:column;
+      background:rgba(8,12,22,.97); padding:12px; border-bottom:1px solid var(--cardb)}
+    nav.links.open{display:flex}
+    nav.links a{padding:12px}
+    .menu-btn{display:block}
+    .hero-inner{padding:42px 22px 34px}
+    .diag-2{grid-template-columns:1fr}
+  }
+  @media(max-width:480px){
+    .chip{min-width:calc(50% - 6px); flex:1 1 calc(50% - 6px)}
+    .btn{width:100%; justify-content:center}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none!important; transition:none!important; scroll-behavior:auto!important}
+    .reveal{opacity:1; transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#overview">Skip to content</a>
+<div id="progress" role="presentation"></div>
+
+<header class="nav">
+  <div class="wrap navrow">
+    <div class="brand"><span class="dot" aria-hidden="true"></span><span class="grad">mv-ai-network-lab</span></div>
+    <button type="button" class="menu-btn" id="menuBtn" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="links" id="navLinks" aria-label="Section navigation">
+      <a href="#overview">Overview</a>
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#dataflow">Data Flow</a>
+      <a href="#stack">Tech Stack</a>
+      <a href="#components">Components</a>
+      <a href="#quickstart">Quickstart</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="hero" aria-label="Introduction">
+    <div class="wrap">
+      <div class="hero-card">
+        <div class="hero-svg" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="heroTitle heroDesc" fill="none" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <title id="heroTitle">multivendor-ai-network-lab — architecture</title>
+  <desc id="heroDesc">Animated NOC banner: a CLOS spine-leaf fabric of Nokia SR Linux, Arista cEOS, and FRR nodes with packets streaming across eBGP underlay and EVPN overlay links, an orbiting closed-loop ring tracing Observe to Decide to Act to Verify, and an MCP node emitting tool-call sparks into the AI orchestrator.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b16"/>
+      <stop offset="0.55" stop-color="#0a0e1a"/>
+      <stop offset="1" stop-color="#0c1426"/>
+    </linearGradient>
+    <radialGradient id="vign" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0" stop-color="#0e1730" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#070b16" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff"/>
+      <stop offset="0.5" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="underline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff"/>
+      <stop offset="0.5" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="ledger" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#14b8a6" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#14b8a6" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#14b8a6" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#1b2540" stroke-width="1" opacity="0.5"/>
+    </pattern>
+
+    <style>
+      @keyframes pulse  { 0%,100%{opacity:.5} 50%{opacity:1} }
+      @keyframes corepulse { 0%,100%{opacity:.55; transform:scale(1)} 50%{opacity:1; transform:scale(1.06)} }
+      @keyframes drawline { to { stroke-dashoffset: 0 } }
+      @keyframes flicker { 0%,100%{opacity:.25} 50%{opacity:.6} }
+      @keyframes spark { 0%{opacity:0} 12%{opacity:1} 60%{opacity:.2} 100%{opacity:0} }
+
+      .node      { transform-box: fill-box; transform-origin: center; }
+      .pulse     { animation: pulse 2.8s ease-in-out infinite; }
+      .p2 { animation-delay:.4s } .p3 { animation-delay:.8s } .p4 { animation-delay:1.2s }
+      .p5 { animation-delay:1.6s } .p6 { animation-delay:2.0s }
+      .core      { animation: corepulse 3.4s ease-in-out infinite; }
+      .grid      { animation: flicker 7s ease-in-out infinite; }
+      .spark     { animation: spark 2.2s ease-in-out infinite; }
+      .underline { stroke-dasharray: 360; stroke-dashoffset: 360; animation: drawline 1.7s ease-out .35s forwards; }
+
+      .label { fill:#e2e8f0; font-size:11px; font-weight:600; letter-spacing:.2px; }
+      .sub   { fill:#94a3b8; }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { animation: none !important; }
+        .underline { stroke-dashoffset: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1200" height="360" fill="url(#bg)"/>
+  <rect width="1200" height="360" fill="url(#grid)" class="grid"/>
+  <rect width="1200" height="360" fill="url(#vign)"/>
+
+  <!-- ============ FABRIC PANEL (left) ============ -->
+  <!-- underlay + overlay connector links (spines top, leafs below) -->
+  <g stroke-width="1.6" fill="none" opacity="0.8">
+    <!-- spine1 -> leafs -->
+    <path id="l11" d="M150 92 C 150 150, 110 175, 95 205"  stroke="#1f3a5c"/>
+    <path id="l12" d="M150 92 C 150 150, 230 175, 250 205" stroke="#1f3a5c"/>
+    <path id="l13" d="M150 92 C 170 150, 360 175, 405 205" stroke="#1f3a5c"/>
+    <!-- spine2 -> leafs -->
+    <path id="l21" d="M295 92 C 250 150, 130 175, 95 205"  stroke="#243a66"/>
+    <path id="l22" d="M295 92 C 295 150, 270 175, 250 205" stroke="#243a66"/>
+    <path id="l23" d="M295 92 C 320 150, 380 175, 405 205" stroke="#243a66"/>
+    <!-- spine3 -> leafs -->
+    <path id="l31" d="M440 92 C 400 150, 130 175, 95 205"  stroke="#33305c"/>
+    <path id="l32" d="M440 92 C 380 150, 280 175, 250 205" stroke="#33305c"/>
+    <path id="l33" d="M440 92 C 440 150, 420 175, 405 205" stroke="#33305c"/>
+  </g>
+
+  <!-- EVPN overlay arc spine-to-spine (multihop loopback peering) -->
+  <path id="ov1" d="M150 76 C 220 30, 370 30, 440 76" stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="3 5" opacity="0.7"/>
+
+  <!-- streaming packets along underlay (cyan -> blue -> violet) -->
+  <circle r="3.2" fill="#00e5ff" filter="url(#glow)"><animateMotion dur="2.4s" repeatCount="indefinite" rotate="auto"><mpath href="#l12"/></animateMotion></circle>
+  <circle r="3.2" fill="#3b82f6" filter="url(#glow)"><animateMotion dur="2.6s" begin="0.5s" repeatCount="indefinite"><mpath href="#l22"/></animateMotion></circle>
+  <circle r="3.2" fill="#8b5cf6" filter="url(#glow)"><animateMotion dur="2.8s" begin="1.0s" repeatCount="indefinite"><mpath href="#l33"/></animateMotion></circle>
+  <circle r="3.2" fill="#00e5ff" filter="url(#glow)"><animateMotion dur="2.5s" begin="1.4s" repeatCount="indefinite"><mpath href="#l13"/></animateMotion></circle>
+  <circle r="3.2" fill="#3b82f6" filter="url(#glow)"><animateMotion dur="2.7s" begin="0.9s" repeatCount="indefinite"><mpath href="#l31"/></animateMotion></circle>
+  <!-- EVPN overlay packet (magenta) -->
+  <circle r="2.8" fill="#f472b6" filter="url(#glow)"><animateMotion dur="3.0s" begin="0.3s" repeatCount="indefinite" rotate="auto"><mpath href="#ov1"/></animateMotion></circle>
+
+  <!-- spine nodes (vendor-tinted) -->
+  <g class="node core" filter="url(#glow)"><circle cx="150" cy="76" r="15" fill="#8b5cf6"/></g>
+  <g class="node core p2" filter="url(#glow)"><circle cx="295" cy="76" r="15" fill="#3b82f6"/></g>
+  <g class="node core p4" filter="url(#glow)"><circle cx="440" cy="76" r="15" fill="#00e5ff"/></g>
+  <text x="150" y="50" text-anchor="middle" class="label sub" font-size="10">spine1 · SRL</text>
+  <text x="295" y="50" text-anchor="middle" class="label sub" font-size="10">spine2 · cEOS</text>
+  <text x="440" y="50" text-anchor="middle" class="label sub" font-size="10">spine3 · FRR</text>
+
+  <!-- leaf nodes -->
+  <g class="node pulse"    filter="url(#glow)"><rect x="73"  y="210" width="44" height="26" rx="7" fill="#3b82f6" opacity="0.92"/></g>
+  <g class="node pulse p3" filter="url(#glow)"><rect x="228" y="210" width="44" height="26" rx="7" fill="#8b5cf6" opacity="0.92"/></g>
+  <g class="node pulse p5" filter="url(#glow)"><rect x="383" y="210" width="44" height="26" rx="7" fill="#00e5ff" opacity="0.92"/></g>
+  <text x="95"  y="227" text-anchor="middle" class="label" font-size="9.5" fill="#0a0e1a">leaf1</text>
+  <text x="250" y="227" text-anchor="middle" class="label" font-size="9.5" fill="#fff">leaf3</text>
+  <text x="405" y="227" text-anchor="middle" class="label" font-size="9.5" fill="#0a0e1a">leaf5</text>
+  <text x="250" y="255" text-anchor="middle" class="label sub" font-size="10">CLOS EVPN-VXLAN fabric</text>
+
+  <!-- ============ CLOSED-LOOP RING (center) ============ -->
+  <g transform="translate(610 150)">
+    <circle r="58" fill="none" stroke="#14213d" stroke-width="9"/>
+    <!-- teal confirmed-commit pulse racing the ring -->
+    <circle r="58" fill="none" stroke="#14b8a6" stroke-width="3.5" stroke-linecap="round"
+            stroke-dasharray="46 318" filter="url(#softglow)" transform="rotate(-90)">
+      <animateTransform attributeName="transform" type="rotate" from="-90" to="270" dur="4.2s" repeatCount="indefinite"/>
+    </circle>
+    <!-- stage dots -->
+    <circle cx="0"   cy="-58" r="4" fill="#00e5ff" class="node pulse"/>
+    <circle cx="58"  cy="0"   r="4" fill="#3b82f6" class="node pulse p2"/>
+    <circle cx="0"   cy="58"  r="4" fill="#14b8a6" class="node pulse p4"/>
+    <circle cx="-58" cy="0"   r="4" fill="#8b5cf6" class="node pulse p6"/>
+    <text x="0"   y="-70" text-anchor="middle" class="label sub" font-size="9">OBSERVE</text>
+    <text x="84"  y="3"   text-anchor="middle" class="label sub" font-size="9">DECIDE</text>
+    <text x="0"   y="80"  text-anchor="middle" class="label sub" font-size="9">VERIFY</text>
+    <text x="-84" y="3"   text-anchor="middle" class="label sub" font-size="9">ACT</text>
+    <text x="0" y="-4" text-anchor="middle" class="label" font-size="11" fill="#14b8a6">Health Gate</text>
+    <text x="0" y="11" text-anchor="middle" class="label sub" font-size="9">confirmed-commit</text>
+  </g>
+
+  <!-- ============ AI ORCHESTRATOR + MCP (right) ============ -->
+  <!-- link fabric -> orchestrator -->
+  <path id="feed" d="M470 150 C 540 150, 560 150, 552 150" stroke="#1f3a5c" stroke-width="1.4" fill="none" opacity="0.6"/>
+  <!-- link ring -> orchestrator -->
+  <path id="toai" d="M668 130 C 760 100, 830 110, 905 110" stroke="#243a66" stroke-width="1.4" fill="none" opacity="0.7"/>
+  <circle r="3" fill="#3b82f6" filter="url(#glow)"><animateMotion dur="2.6s" repeatCount="indefinite" rotate="auto"><mpath href="#toai"/></animateMotion></circle>
+
+  <!-- MCP node + tool-call sparks into orchestrator -->
+  <path id="mcpspark" d="M1062 250 C 1010 210, 980 170, 952 132" stroke="#33305c" stroke-width="1.2" fill="none" opacity="0.55"/>
+  <circle r="2.6" fill="#f472b6" filter="url(#glow)"><animateMotion dur="1.9s" repeatCount="indefinite"><mpath href="#mcpspark"/></animateMotion></circle>
+  <circle r="2.6" fill="#8b5cf6" filter="url(#glow)"><animateMotion dur="1.9s" begin="0.95s" repeatCount="indefinite"><mpath href="#mcpspark"/></animateMotion></circle>
+
+  <g class="node core p3" filter="url(#softglow)"><rect x="900" y="86" width="118" height="48" rx="11" fill="#7c3aed" opacity="0.95"/></g>
+  <text x="959" y="106" text-anchor="middle" class="label" font-size="11.5" fill="#fff">AI Orchestrator</text>
+  <text x="959" y="121" text-anchor="middle" class="label" font-size="9" fill="#ddd6fe">Pydantic · Anthropic</text>
+
+  <g class="node pulse p5" filter="url(#glow)"><rect x="1018" y="234" width="92" height="34" rx="9" fill="#f472b6" opacity="0.92"/></g>
+  <text x="1064" y="255" text-anchor="middle" class="label" font-size="10" fill="#1a0a14">MCP · 64 tools</text>
+  <g class="spark"><circle cx="1064" cy="234" r="2.5" fill="#f472b6"/></g>
+
+  <!-- driver layer chip -->
+  <g class="node pulse p4" filter="url(#glow)"><rect x="548" y="244" width="124" height="30" rx="8" fill="#0ea5e9" opacity="0.9"/></g>
+  <text x="610" y="263" text-anchor="middle" class="label" font-size="9.5" fill="#03121f">Driver Layer · DriverResult</text>
+
+  <!-- GAIT immutable ledger line scrolling beneath -->
+  <line x1="60" y1="312" x2="1140" y2="312" stroke="#14213d" stroke-width="1"/>
+  <rect x="0" y="309" width="260" height="6" rx="3" fill="url(#ledger)">
+    <animate attributeName="x" from="-260" to="1200" dur="6.5s" repeatCount="indefinite"/>
+  </rect>
+  <text x="62" y="328" class="label sub" font-size="9">GAIT immutable audit · append-only JSONL · token cost per action</text>
+
+  <!-- ============ TITLE BLOCK ============ -->
+  <text x="600" y="44" text-anchor="middle" font-size="13" font-weight="600" letter-spacing="4" fill="#64748b">CLOSED-LOOP MULTI-VENDOR NETWORK OPS</text>
+
+  <!-- Title sits lower-center, kept clear of fabric panel -->
+  <g transform="translate(0 0)">
+    <text x="780" y="178" text-anchor="middle" font-size="40" font-weight="800" fill="url(#title)">multivendor-ai-network-lab</text>
+    <path class="underline" d="M610 196 H950" stroke="url(#underline)" stroke-width="3" stroke-linecap="round"/>
+    <text x="780" y="220" text-anchor="middle" font-size="14" class="sub">Predict → Blast Radius → Health Gate → Watch → Verify · auto-rollback</text>
+  </g>
+
+  <!-- tech chips -->
+  <g font-size="10" font-weight="600">
+    <g><rect x="560" y="285" width="62" height="18" rx="9" fill="#0e1730" stroke="#00e5ff" stroke-opacity="0.5"/><text x="591" y="297" text-anchor="middle" fill="#67e8f9">FRR</text></g>
+    <g><rect x="628" y="285" width="74" height="18" rx="9" fill="#0e1730" stroke="#3b82f6" stroke-opacity="0.5"/><text x="665" y="297" text-anchor="middle" fill="#93c5fd">Arista EOS</text></g>
+    <g><rect x="708" y="285" width="78" height="18" rx="9" fill="#0e1730" stroke="#8b5cf6" stroke-opacity="0.5"/><text x="747" y="297" text-anchor="middle" fill="#c4b5fd">Nokia SRL</text></g>
+    <g><rect x="792" y="285" width="60" height="18" rx="9" fill="#0e1730" stroke="#f472b6" stroke-opacity="0.5"/><text x="822" y="297" text-anchor="middle" fill="#f9a8d4">Junos</text></g>
+    <g><rect x="858" y="285" width="74" height="18" rx="9" fill="#0e1730" stroke="#14b8a6" stroke-opacity="0.5"/><text x="895" y="297" text-anchor="middle" fill="#5eead4">Flask :5757</text></g>
+  </g>
+</svg>
+        </div>
+        <div class="hero-inner">
+          <p class="eyebrow">Closed-Loop Multi-Vendor Network Ops</p>
+          <h1 class="grad">multivendor-ai-network-lab</h1>
+          <p class="tagline">A 26-device multivendor (Juniper / Arista / FRR) network operations lab driven by a Pydantic-AI orchestrator, eval harness, and immutable AI audit trail.</p>
+          <div class="chips" id="chips" aria-label="Project statistics" role="group">
+            <div class="chip"><span class="num" data-to="26">0</span><span class="lab">lab devices</span></div>
+            <div class="chip"><span class="num" data-to="5">0</span><span class="lab">sites</span></div>
+            <div class="chip"><span class="num" data-to="64">0</span><span class="lab">MCP tools</span></div>
+            <div class="chip"><span class="num" data-to="40" data-suffix="+">0</span><span class="lab">REST endpoints</span></div>
+            <div class="chip"><span class="num" data-to="9802" data-comma="1">0</span><span class="lab">CLI corpus (BM25)</span></div>
+            <div class="chip"><span class="num" data-raw="137 / 137">0</span><span class="lab">backend pytest</span></div>
+          </div>
+          <div class="cta">
+            <a class="btn btn-primary" href="https://github.com/gesh75/multivendor-ai-network-lab" target="_blank" rel="noopener">↗ GitHub repo</a>
+            <a class="btn btn-ghost" href="#quickstart">↓ Quickstart</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section id="overview" aria-labelledby="overview-h">
+    <div class="wrap reveal">
+      <p class="eyebrow">Overview</p>
+      <h2 class="sect" id="overview-h">What it <span class="grad">is</span></h2>
+      <p class="lede">Multivendor AI Network Lab is a closed-loop NetOps reference implementation: two real labs — a containerlab CLOS EVPN-VXLAN fabric and a docker-compose FRR backbone — are driven by a Flask monolith whose core is a vendor-neutral driver abstraction layer.</p>
+      <p class="lede" style="margin-top:14px">It solves the problem of safely operating heterogeneous Juniper/Arista/FRR networks with AI, running an <strong style="color:var(--cyan)">observe → diagnose → remediate → verify → document</strong> loop with RFC 6241 confirmed-commit safety and auto-rollback. The whole surface is exposed to AI agents through a 64-tool MCP server and to humans through a web UI and Telegram bot. It is built as a portfolio / demo lab, not a production system.</p>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section id="features" aria-labelledby="features-h">
+    <div class="wrap">
+      <div class="reveal">
+        <p class="eyebrow">Key Features</p>
+        <h2 class="sect" id="features-h">Built for <span class="grad">safe AI-driven change</span></h2>
+        <p class="lede">Every capability is grounded in a real source module — from the change pipeline down to the immutable audit ledger.</p>
+      </div>
+      <div class="grid feat-grid" style="margin-top:30px">
+        <article class="card reveal"><span class="ico" aria-hidden="true">🔁</span><h3>Closed-loop change pipeline</h3><p><code style="font-family:var(--mono);color:var(--cyan)">POST /api/change/closed-loop</code> chains 6 stages — Predict → Batfish → Apply (Health Gate) → Watch → POST diff → Intent verify — into one governed operation with auto-rollback (APPROVED in 12s, ROLLED_BACK in 6s on induced regression).</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">🛡️</span><h3>Health Gate confirmed-commit</h3><p>RFC 6241 §8.4 confirmed-commit gate: every config change runs inside a watch window and auto-reverts if any signal degrades.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">⚙️</span><h3>Vendor-neutral driver core</h3><p>BaseNetworkDriver template method with a <code style="font-family:var(--mono);color:var(--cyan)">get_driver()</code> factory maps each vendor (FRR/EOS/SRL/Junos/IOSXR) to a concrete driver and transport, returning a frozen, soft-failing DriverResult.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">🤖</span><h3>Pydantic-AI multi-agent orchestrator</h3><p>Structured-output Routing / ACL / Incident agents route symptoms to diagnoses; degrades to deterministic offline mode without an Anthropic API key.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">🔌</span><h3>64-tool MCP server</h3><p>A FastMCP surface exposes every capability so Claude Code, Cursor, and opencode can call the lab directly as agent tools.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">📜</span><h3>GAIT immutable audit + auto-postmortem</h3><p>Every AI action is appended to a JSONL ledger with token cost; the postmortem writer stitches GAIT + Health Gate + Remediation events into structured markdown incident reports.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">📖</span><h3>NetBox SoT drift detection</h3><p>Severity-tiered (critical/high/medium/low) comparison between the NetBox source of truth and the running lab across IP / AS / site / vendor / model / role / OS fields.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">🔍</span><h3>CLI RAG over 9,802 commands</h3><p>Stdlib-only BM25 retrieval over a multivendor CLI corpus returns vendor-specific matches with citation deep-links — no embeddings or model download.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARCHITECTURE ============ -->
+  <section id="architecture" aria-labelledby="arch-h">
+    <div class="wrap">
+      <div class="reveal">
+        <p class="eyebrow">Architecture</p>
+        <h2 class="sect" id="arch-h">System <span class="grad">context &amp; components</span></h2>
+        <p class="lede">Humans and AI agents drive the Flask closed-loop core, which in turn drives the two physical labs, the Anthropic API, telemetry backends, and source-of-truth / verification systems. Inside the monolith every request resolves a device, picks a vendor driver, and runs commands through a transport.</p>
+      </div>
+      <div class="grid diag-2" style="margin-top:18px">
+        <div class="diagram reveal">
+          <h3>System Context</h3>
+          <p class="dcap">How humans and AI agents drive the Flask core, which drives the two labs, the Anthropic API, telemetry, and SoT/verification.</p>
+<pre class="mermaid">flowchart TB
+    operator(["NOC Operator - web UI and Telegram"]):::actor
+    agents(["Claude Code - via MCP, 64 tools"]):::actor
+    system{{"multivendor-ai-network-lab - Flask :5757 closed-loop ops"}}:::core
+    labs["Two Labs - CLOS EVPN-VXLAN and FRR backbone"]:::infra
+    anthropic["Anthropic API - claude-haiku-4-5"]:::ai
+    tsdb["InfluxDB 2.7 and Grafana 10.4"]:::data
+    sot["NetBox and Batfish - SoT and verification"]:::data
+    operator --&gt;|"symptoms, changes"| system
+    agents --&gt;|"tool calls"| system
+    system --&gt;|"docker-exec, SSH"| labs
+    system --&gt;|"diagnose, judge"| anthropic
+    system --&gt;|"line protocol"| tsdb
+    system --&gt;|"drift, what-if"| sot
+    labs -.-&gt;|"live state"| system
+    classDef actor fill:#475569,stroke:#94a3b8,color:#f8fafc
+    classDef core fill:#60a5fa,stroke:#93c5fd,color:#03121f
+    classDef infra fill:#5eead4,stroke:#99f6e4,color:#03121f
+    classDef ai fill:#a78bfa,stroke:#c4b5fd,color:#0b0614
+    classDef data fill:#34d399,stroke:#6ee7b7,color:#03121f</pre>
+        </div>
+        <div class="diagram reveal">
+          <h3>Container &amp; Component Map</h3>
+          <p class="dcap">The closed-loop, AI, and audit modules all layer on top of a single driver core resolving device → driver → transport.</p>
+<pre class="mermaid">flowchart TB
+    subgraph FE["Front-ends"]
+        mcp["MCP Server - FastMCP, 64 tools"]:::edge
+        tg["Telegram Bot - async httpx"]:::edge
+        ui["Static Demo UI"]:::edge
+    end
+    subgraph API["Flask Monolith :5757"]
+        app["app.py - device-ops routes"]:::svc
+        mvbp["mv_bp Blueprint - api mv routes"]:::svc
+    end
+    subgraph LOOP["Closed-Loop Modules"]
+        predict["Predict and Blast Radius"]:::accent
+        gate["Health Gate - confirmed-commit"]:::accent
+        remed["Auto-Remediate and Postmortem"]:::accent
+    end
+    subgraph CORE["Driver Core"]
+        driver["Driver Abstraction - factory, BaseDriver"]:::core
+        transport["Transport - docker-exec, SSH"]:::core
+    end
+    orch["AI Orchestrator - Pydantic agents"]:::ai
+    gait["GAIT Audit - append-only JSONL"]:::data
+    tele["Telemetry Collector to InfluxDB"]:::data
+    mcp --&gt; mvbp
+    tg --&gt; mvbp
+    ui --&gt; app
+    app --&gt; mvbp
+    mvbp --&gt; predict --&gt; gate
+    mvbp --&gt; orch
+    gate --&gt; driver
+    remed --&gt; gate
+    driver --&gt; transport
+    orch --&gt; gait
+    gate --&gt; gait
+    tele --&gt; driver
+    classDef edge fill:#475569,stroke:#94a3b8,color:#f8fafc
+    classDef svc fill:#60a5fa,stroke:#93c5fd,color:#03121f
+    classDef accent fill:#a78bfa,stroke:#c4b5fd,color:#0b0614
+    classDef core fill:#5eead4,stroke:#99f6e4,color:#03121f
+    classDef data fill:#34d399,stroke:#6ee7b7,color:#03121f</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DATA FLOW / HOW IT WORKS ============ -->
+  <section id="dataflow" aria-labelledby="flow-h">
+    <div class="wrap">
+      <div class="reveal">
+        <p class="eyebrow">How it works · Data flow</p>
+        <h2 class="sect" id="flow-h">From raw CLI to a <span class="grad">governed change</span></h2>
+        <p class="lede">Fabric nodes (SR Linux, cEOS, FRR, Junos) expose raw CLI state. A collector polls each node over docker-exec; <code style="font-family:var(--mono);color:var(--cyan)">drivers/parsers.py</code> normalizes it into a vendor-neutral schema; a parallel health snapshot fans the sections into one JSON doc; metrics flow to InfluxDB 2.7 / Grafana 10.4; and every AI action and gate decision is appended to the GAIT ledger with token cost.</p>
+      </div>
+      <div class="diagram reveal" style="margin-top:18px">
+        <h3>Closed-Loop Change Pipeline</h3>
+        <p class="dcap">A governed change is gated by blast radius, applied through the Health Gate under a confirmed-commit watch window, then confirmed or auto-rolled-back — every step appended to the GAIT ledger.</p>
+<pre class="mermaid">sequenceDiagram
+    actor Op as Operator or Agent
+    participant API as Flask change closed-loop
+    participant Pred as Predict and Blast Radius
+    participant Gate as Health Gate
+    participant Dev as Device driver
+    participant Gait as GAIT Audit
+    Op->>API: submit change
+    API->>Pred: simulate diff and cascade depth
+    Pred-->>API: verdict APPROVE WARN or REJECT
+    alt REJECT
+        API-->>Op: blocked by blast radius
+    else proceed
+        API->>Gate: apply with confirmed-commit
+        Gate->>Dev: edit PyEZ Junos or simulated FRR
+        Gate->>Dev: watch BGP iface alerts
+        alt signals clean
+            Gate->>Dev: confirm commit
+            Gate-->>Op: CONFIRMED
+        else signals degrade
+            Gate->>Dev: auto-rollback
+            Gate-->>Op: ROLLED_BACK
+        end
+    end
+    API->>Gait: append record plus token cost</pre>
+      </div>
+      <div class="diagram reveal">
+        <h3>Health Gate State Machine</h3>
+        <p class="dcap">The Health Gate models a change as a confirmed-commit lifecycle — snapshot, apply, watch, then either confirm or roll back. Auto-remediation runs its fixes through the same machine.</p>
+<pre class="mermaid">stateDiagram-v2
+    [*] --> PreSnapshot
+    PreSnapshot --> Applied: edit committed
+    Applied --> Watching: start watch window
+    Watching --> Confirmed: signals clean
+    Watching --> RolledBack: signals degrade
+    Confirmed --> [*]
+    RolledBack --> [*]
+    classDef good fill:#34d399,stroke:#6ee7b7,color:#03121f
+    classDef bad fill:#a78bfa,stroke:#c4b5fd,color:#0b0614
+    classDef work fill:#60a5fa,stroke:#93c5fd,color:#03121f
+    class Confirmed good
+    class RolledBack bad
+    class Watching work</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TECH STACK ============ -->
+  <section id="stack" aria-labelledby="stack-h">
+    <div class="wrap">
+      <div class="reveal">
+        <p class="eyebrow">Tech Stack</p>
+        <h2 class="sect" id="stack-h">The <span class="grad">real tooling</span></h2>
+        <p class="lede">A Python / Flask backend, FastMCP agent surface, multi-vendor network operating systems, and an observability + verification plane.</p>
+      </div>
+      <div class="stack reveal" style="margin-top:24px" aria-label="Technologies used" role="group">
+        <span class="tag">Python 3.11+</span>
+        <span class="tag">Flask 3.x</span>
+        <span class="tag">Flask Blueprints</span>
+        <span class="tag">gunicorn</span>
+        <span class="tag">FastMCP (mcp[cli])</span>
+        <span class="tag">Anthropic SDK (claude-haiku-4-5)</span>
+        <span class="tag">Pydantic</span>
+        <span class="tag">junos-eznc (PyEZ)</span>
+        <span class="tag">netmiko</span>
+        <span class="tag">nornir</span>
+        <span class="tag">pynetbox</span>
+        <span class="tag">Batfish (digital twin)</span>
+        <span class="tag">containerlab</span>
+        <span class="tag">docker-compose</span>
+        <span class="tag">Nokia SR Linux</span>
+        <span class="tag">Arista cEOS / EOS</span>
+        <span class="tag">FRRouting</span>
+        <span class="tag">Junos</span>
+        <span class="tag">InfluxDB 2.7</span>
+        <span class="tag">Grafana 10.4</span>
+        <span class="tag">gnmic</span>
+        <span class="tag">python-telegram-bot</span>
+        <span class="tag">pytest</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPONENTS ============ -->
+  <section id="components" aria-labelledby="comp-h">
+    <div class="wrap">
+      <div class="reveal">
+        <p class="eyebrow">Components · Modules</p>
+        <h2 class="sect" id="comp-h">Module <span class="grad">responsibilities</span></h2>
+        <p class="lede">Real source modules and directories mapped to what they own.</p>
+      </div>
+      <div class="tbl-wrap reveal" style="margin-top:22px">
+        <table>
+          <thead><tr><th scope="col">Module / Dir</th><th scope="col">Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><code>src/app.py</code></td><td><span class="resp">Main Flask API and demo UI server on port 5757; legacy device-ops routes and static demo serving.</span><br><span class="t">Flask · Python 3.11+</span></td></tr>
+            <tr><td><code>src/multivendor_extensions.py</code></td><td><span class="resp">mv_bp Flask Blueprint exposing the /api/mv/* endpoints (orchestrator, intent verify, path trace, eval, GAIT, runbooks, CVE, translator, TOON).</span><br><span class="t">Flask Blueprints · type hints</span></td></tr>
+            <tr><td><code>src/drivers/</code></td><td><span class="resp">Vendor-neutral driver abstraction: BaseNetworkDriver template method, get_driver() factory, per-vendor subclasses (FRR/EOS/SRL/Junos/IOSXR), transports, parsers, frozen DriverResult.</span><br><span class="t">Python ABC · dataclasses · ThreadPoolExecutor · Protocol</span></td></tr>
+            <tr><td><code>src/mcp_dcn_server.py</code></td><td><span class="resp">FastMCP server exposing lab capabilities as MCP tools so Claude Code / Cursor / opencode can call any capability.</span><br><span class="t">FastMCP · mcp[cli]</span></td></tr>
+            <tr><td><code>src/pydantic_ai_orchestrator.py</code></td><td><span class="resp">Multi-agent orchestrator with structured outputs (Routing / ACL / Incident agents); degrades to offline rule-based mode without an API key.</span><br><span class="t">Pydantic · Anthropic SDK (claude-haiku-4-5)</span></td></tr>
+            <tr><td><code>src/health_gate.py</code></td><td><span class="resp">RFC 6241 §8.4 confirmed-commit Health Gate: snapshot, apply, watch window, then confirm or auto-rollback on regression.</span><br><span class="t">Python · junos-eznc (PyEZ)</span></td></tr>
+            <tr><td><code>src/health.py</code></td><td><span class="resp">Single-device health snapshot: parallel fan-out collecting BGP/OSPF/interfaces/routes/mem/CPU into one JSON doc via GET /api/health/&lt;hostname&gt;.</span><br><span class="t">Python · concurrent.futures</span></td></tr>
+            <tr><td><code>src/netbox_sot.py</code></td><td><span class="resp">NetBox source-of-truth drift detector: severity-tiered (critical/high/medium/low) presence and field drift between SoT and observed state.</span><br><span class="t">Python · pynetbox</span></td></tr>
+            <tr><td><code>src/auto_remediate.py · src/remediation.py</code></td><td><span class="resp">Auto-remediation proposal state machine: drift → AI proposes runbook → human approves → executes through the Health Gate.</span><br><span class="t">Python · YAML runbooks</span></td></tr>
+            <tr><td><code>src/postmortem.py</code></td><td><span class="resp">Auto-postmortem writer: stitches GAIT + Health Gate + Remediation events into a structured markdown incident report with P1 detection.</span><br><span class="t">Python · markdown</span></td></tr>
+            <tr><td><code>src/gait_audit.py</code></td><td><span class="resp">GAIT immutable append-only JSONL audit trail recording every AI action with token-in/token-out cost.</span><br><span class="t">Python · append-only JSONL · threading lock</span></td></tr>
+            <tr><td><code>src/cli_rag.py</code></td><td><span class="resp">BM25 retrieval over a 9,802-command multivendor CLI corpus with citation deep-links; stdlib-only, no embeddings.</span><br><span class="t">Python stdlib · BM25</span></td></tr>
+            <tr><td><code>src/predict_engine.py · blast_radius.py · forecast_engine.py</code></td><td><span class="resp">Change prediction, blast-radius cascade-depth simulation, and predictive forecasting that feed the closed-loop change pipeline.</span><br><span class="t">Python · optional Batfish digital twin</span></td></tr>
+            <tr><td><code>network-lab/</code></td><td><span class="resp">Docker lab and sanitized device configs: docker-compose FRR container mesh (ports 2201-2210) plus 16 sanitized junos+eos configs and inventory.json.</span><br><span class="t">docker-compose · FRRouting</span></td></tr>
+            <tr><td><code>demo/</code></td><td><span class="resp">Static HTML/JS demo UI (index.html, phase3.js) and animated in-app architecture page.</span><br><span class="t">HTML · JavaScript</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUICKSTART ============ -->
+  <section id="quickstart" aria-labelledby="qs-h">
+    <div class="wrap">
+      <div class="reveal">
+        <p class="eyebrow">Quickstart</p>
+        <h2 class="sect" id="qs-h">Run it <span class="grad">locally</span></h2>
+        <p class="lede">Bring up the FRR backbone lab, then start the Flask app and open the demo UI.</p>
+      </div>
+      <div class="code reveal">
+        <button class="copy" type="button" aria-label="Copy commands to clipboard">Copy</button>
+<pre><code><span class="cm"># clone the lab</span>
+<span class="ln">$</span> git clone https://github.com/gesh75/multivendor-ai-network-lab.git
+<span class="ln">$</span> cd multivendor-ai-network-lab
+
+<span class="cm"># start the docker-compose FRR backbone</span>
+<span class="ln">$</span> cd network-lab &amp;&amp; docker-compose up -d
+
+<span class="cm"># create a venv and install deps</span>
+<span class="ln">$</span> cd ../src &amp;&amp; python3 -m venv venv &amp;&amp; source venv/bin/activate
+<span class="ln">$</span> pip install -r requirements.txt
+
+<span class="cm"># launch the Flask app (port 5757) and open the demo UI</span>
+<span class="ln">$</span> python3 app.py
+<span class="ln">$</span> open http://localhost:5757/demo/index.html</code></pre>
+      </div>
+      <p class="note">This is a portfolio / demo lab, not a production system. The README documents a production-migration roadmap — move state out of memory into Redis/RQ, adopt TextFSM parsers, split the Flask blueprint, add a CI gate, and wire in a secrets manager.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="frow">
+      <div>
+        <div class="brand" style="font-size:18px"><span class="dot" aria-hidden="true"></span><span class="grad">multivendor-ai-network-lab</span></div>
+        <p class="auto">Predict → Blast Radius → Health Gate → Watch → Verify, with auto-rollback and an immutable AI audit trail. Auto-generated documentation — every fact is grounded in the repository's README, ARCHITECTURE.md, and source tree.</p>
+      </div>
+      <nav class="links2" aria-label="Footer links">
+        <a href="https://github.com/gesh75/multivendor-ai-network-lab" target="_blank" rel="noopener">↗ GitHub repo</a>
+        <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        <a href="#hero">↑ Top</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<button type="button" id="top" aria-label="Back to top">↑</button>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    securityLevel: 'strict',
+    themeVariables: {
+      primaryColor:'#1e293b', primaryTextColor:'#e2e8f0', lineColor:'#64748b',
+      primaryBorderColor:'#475569', fontFamily:'ui-sans-serif, system-ui, sans-serif',
+      background:'#0b1020'
+    }
+  });
+
+  /* ---- scroll progress bar ---- */
+  const progress = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    progress.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    document.getElementById('top').classList.toggle('show', h.scrollTop > 600);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ---- back to top ---- */
+  document.getElementById('top').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+
+  /* ---- mobile menu ---- */
+  const menuBtn = document.getElementById('menuBtn');
+  const navLinks = document.getElementById('navLinks');
+  menuBtn.addEventListener('click', () => {
+    const open = navLinks.classList.toggle('open');
+    menuBtn.setAttribute('aria-expanded', String(open));
+  });
+  navLinks.querySelectorAll('a').forEach(a =>
+    a.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    })
+  );
+
+  /* ---- scroll reveal ---- */
+  const revealEls = document.querySelectorAll('.reveal');
+  if (reduce) {
+    revealEls.forEach(el => el.classList.add('in'));
+  } else {
+    const ro = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('in'), (i % 6) * 80);
+          ro.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    revealEls.forEach(el => ro.observe(el));
+  }
+
+  /* ---- count-up stat chips ---- */
+  const nums = document.querySelectorAll('#chips .num');
+  const animateNum = (el) => {
+    const raw = el.getAttribute('data-raw');
+    if (raw) { el.textContent = raw; return; }
+    const to = parseInt(el.getAttribute('data-to'), 10);
+    const suffix = el.getAttribute('data-suffix') || '';
+    const comma = el.getAttribute('data-comma') === '1';
+    if (reduce) { el.textContent = (comma ? to.toLocaleString('en-US') : to) + suffix; return; }
+    const dur = 1100; const start = performance.now();
+    const step = (now) => {
+      const p = Math.min((now - start) / dur, 1);
+      const v = Math.round((1 - Math.pow(1 - p, 3)) * to);
+      el.textContent = (comma ? v.toLocaleString('en-US') : v) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  const chipObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { animateNum(e.target); chipObs.unobserve(e.target); } });
+  }, { threshold: 0.5 });
+  nums.forEach(n => chipObs.observe(n));
+
+  /* ---- scroll-spy active nav ---- */
+  const sections = ['overview','features','architecture','dataflow','stack','components','quickstart'];
+  const linkFor = (id) => document.querySelector(`nav.links a[href="#${id}"]`);
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('nav.links a').forEach(a => a.classList.remove('active'));
+        const l = linkFor(e.target.id);
+        if (l) l.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  sections.forEach(id => { const s = document.getElementById(id); if (s) spy.observe(s); });
+
+  /* ---- copy-to-clipboard ---- */
+  document.querySelectorAll('.copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const code = btn.parentElement.querySelector('code');
+      const text = code.innerText.replace(/^\$\s?/gm, '').trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = 'Copied ✓'; btn.classList.add('ok');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 1800);
+      } catch {
+        btn.textContent = 'Press ⌘C';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+      }
+    });
+  });
+</script>
+</body>
+</html>
