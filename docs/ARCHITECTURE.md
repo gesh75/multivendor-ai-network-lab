@@ -34,22 +34,22 @@ to observability backends while calling the Anthropic API for diagnosis.
 
 ```mermaid
 flowchart TB
-    operator(["👤 NOC Operator<br/>web UI · Telegram"]):::actor
-    agents(["🤖 Claude Code<br/>via MCP · 64 tools"]):::actor
+    operator(["NOC Operator - web UI and Telegram"]):::actor
+    agents(["Claude Code - via MCP, 64 tools"]):::actor
 
-    system{{"🛰️ multivendor-ai-network-lab<br/>Flask :5757 · closed-loop ops"}}:::core
+    system{{"multivendor-ai-network-lab - Flask :5757 closed-loop ops"}}:::core
 
-    labs["🧪 Two Labs<br/>CLOS EVPN-VXLAN + FRR backbone<br/>SRL · cEOS · FRR · Junos"]:::infra
-    anthropic["🧠 Anthropic API<br/>claude-haiku-4-5"]:::ai
-    tsdb["📊 InfluxDB 2.7<br/>+ Grafana 10.4"]:::data
-    sot["🗂️ NetBox / Batfish<br/>SoT · verification"]:::data
+    labs["Two Labs - CLOS EVPN-VXLAN and FRR backbone"]:::infra
+    anthropic["Anthropic API - claude-haiku-4-5"]:::ai
+    tsdb["InfluxDB 2.7 and Grafana 10.4"]:::data
+    sot["NetBox and Batfish - SoT and verification"]:::data
 
-    operator -->|"symptoms · changes"| system
+    operator -->|"symptoms, changes"| system
     agents -->|"tool calls"| system
-    system -->|"docker-exec · SSH"| labs
-    system -->|"diagnose · judge"| anthropic
+    system -->|"docker-exec, SSH"| labs
+    system -->|"diagnose, judge"| anthropic
     system -->|"line protocol"| tsdb
-    system -->|"drift · what-if"| sot
+    system -->|"drift, what-if"| sot
     labs -.->|"live state"| system
 
     classDef actor fill:#475569,stroke:#94a3b8,color:#fff
@@ -69,31 +69,31 @@ modules layer on top of that single driver core.
 
 ```mermaid
 flowchart TB
-    subgraph FE["🖥️ Front-ends"]
-        mcp["MCP Server<br/>FastMCP · 64 tools"]:::edge
-        tg["Telegram Bot<br/>async · httpx"]:::edge
-        ui["Static Demo UI<br/>:8080"]:::edge
+    subgraph FE["Front-ends"]
+        mcp["MCP Server - FastMCP, 64 tools"]:::edge
+        tg["Telegram Bot - async, httpx"]:::edge
+        ui["Static Demo UI - :8080"]:::edge
     end
 
-    subgraph API["⚙️ Flask Monolith :5757"]
-        app["app.py<br/>~34 device-ops routes"]:::svc
-        mvbp["mv_bp Blueprint<br/>55 /api/mv/* routes"]:::svc
+    subgraph API["Flask Monolith :5757"]
+        app["app.py - 34 device-ops routes"]:::svc
+        mvbp["mv_bp Blueprint - 55 api mv routes"]:::svc
     end
 
-    subgraph LOOP["🔁 Closed-Loop Modules"]
-        predict["Predict + Blast Radius"]:::accent
-        gate["Health Gate<br/>confirmed-commit"]:::accent
-        remed["Auto-Remediate<br/>+ Postmortem"]:::accent
+    subgraph LOOP["Closed-Loop Modules"]
+        predict["Predict and Blast Radius"]:::accent
+        gate["Health Gate - confirmed-commit"]:::accent
+        remed["Auto-Remediate and Postmortem"]:::accent
     end
 
-    subgraph CORE["🧩 Driver Core"]
-        driver["Driver Abstraction<br/>factory · BaseDriver"]:::core
-        transport["Transport Layer<br/>docker-exec · SSH"]:::core
+    subgraph CORE["Driver Core"]
+        driver["Driver Abstraction - factory, BaseDriver"]:::core
+        transport["Transport Layer - docker-exec, SSH"]:::core
     end
 
-    orch["AI Orchestrator<br/>Pydantic agents"]:::ai
-    gait["GAIT Audit<br/>append-only JSONL"]:::data
-    tele["Telemetry Collector<br/>→ InfluxDB"]:::data
+    orch["AI Orchestrator - Pydantic agents"]:::ai
+    gait["GAIT Audit - append-only JSONL"]:::data
+    tele["Telemetry Collector to InfluxDB"]:::data
 
     mcp --> mvbp
     tg --> mvbp
@@ -126,22 +126,22 @@ trigger automatic rollback, and every step is appended to the GAIT ledger.
 
 ```mermaid
 sequenceDiagram
-    actor Op as Operator / Agent
-    participant API as Flask /api/change/closed-loop
-    participant Pred as Predict + Blast Radius
+    actor Op as Operator or Agent
+    participant API as Flask api change closed-loop
+    participant Pred as Predict and Blast Radius
     participant Gate as Health Gate
-    participant Dev as Device (driver)
+    participant Dev as Device driver
     participant Gait as GAIT Audit
 
     Op->>API: submit change
-    API->>Pred: simulate diff + cascade depth
-    Pred-->>API: verdict (APPROVE / WARN / REJECT)
+    API->>Pred: simulate diff and cascade depth
+    Pred-->>API: verdict APPROVE WARN or REJECT
     alt REJECT
-        API-->>Op: blocked (blast radius)
+        API-->>Op: blocked by blast radius
     else proceed
         API->>Gate: apply with confirmed-commit
-        Gate->>Dev: edit (PyEZ on Junos / simulated FRR)
-        Gate->>Dev: watch BGP · iface · alerts
+        Gate->>Dev: edit PyEZ on Junos or simulated FRR
+        Gate->>Dev: watch BGP, iface, alerts
         alt signals clean
             Gate->>Dev: confirm commit
             Gate-->>Op: CONFIRMED
@@ -150,7 +150,7 @@ sequenceDiagram
             Gate-->>Op: ROLLED_BACK
         end
     end
-    API->>Gait: append record (+ token cost)
+    API->>Gait: append record plus token cost
 ```
 
 ---
@@ -164,13 +164,13 @@ feeding the same bucket.
 
 ```mermaid
 flowchart LR
-    nodes["🧪 Fabric Nodes<br/>SRL · cEOS · FRR · Junos"]:::infra
-    coll["clab_collector<br/>docker exec poll"]:::svc
-    parse["parsers.py<br/>vendor-neutral schema"]:::core
-    snap["Health Snapshot<br/>parallel fan-out"]:::core
-    influx["InfluxDB 2.7<br/>line protocol"]:::data
-    graf["Grafana 10.4<br/>dashboards"]:::data
-    gnmic["gnmic sidecar<br/>streaming"]:::accent
+    nodes["Fabric Nodes - SRL, cEOS, FRR, Junos"]:::infra
+    coll["clab_collector - docker exec poll"]:::svc
+    parse["parsers.py - vendor-neutral schema"]:::core
+    snap["Health Snapshot - parallel fan-out"]:::core
+    influx["InfluxDB 2.7 - line protocol"]:::data
+    graf["Grafana 10.4 - dashboards"]:::data
+    gnmic["gnmic sidecar - streaming"]:::accent
 
     nodes --> coll --> parse --> snap --> influx --> graf
     gnmic -->|"source-tag freshness"| influx
@@ -193,9 +193,9 @@ Protocol. Every call returns a soft-failing `DriverResult`.
 
 ```mermaid
 flowchart TB
-    factory["get_driver(vendor)<br/>registry + factory"]:::accent
-    base["BaseNetworkDriver<br/>template method · ThreadPoolExecutor"]:::core
-    result["DriverResult<br/>.normalized + .raw · never raises"]:::data
+    factory["get_driver vendor - registry and factory"]:::accent
+    base["BaseNetworkDriver - template method, ThreadPoolExecutor"]:::core
+    result["DriverResult - normalized and raw, never raises"]:::data
 
     subgraph Drivers["Concrete Drivers"]
         frr["FRRDriver"]:::svc
@@ -206,9 +206,9 @@ flowchart TB
     end
 
     subgraph Transports["Transport Protocol"]
-        dock["DockerExecTransport<br/>persistent session pool"]:::edge
+        dock["DockerExecTransport - persistent session pool"]:::edge
         ssh["SSHRunnerTransport"]:::edge
-        scrapli["ScrapliTransport<br/>lazy stub"]:::edge
+        scrapli["ScrapliTransport - lazy stub"]:::edge
     end
 
     factory --> base
@@ -243,10 +243,7 @@ stateDiagram-v2
     Confirmed --> [*]
     RolledBack --> [*]
 
-    note right of Watching
-        re-poll BGP · iface · alerts
-        over the watch window
-    end note
+    note right of Watching : re-poll BGP, iface, alerts over the watch window
 
     classDef good fill:#059669,stroke:#34d399,color:#fff
     classDef bad fill:#e11d48,stroke:#fb7185,color:#fff

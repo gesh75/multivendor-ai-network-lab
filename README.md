@@ -108,22 +108,22 @@ auto-rollback, while telemetry streams to InfluxDB/Grafana.
 
 ```mermaid
 flowchart TB
-    operator(["👤 NOC Operator<br/>web UI · Telegram"]):::actor
-    agents(["🤖 Claude Code<br/>via MCP · 64 tools"]):::actor
+    operator(["NOC Operator - web UI and Telegram"]):::actor
+    agents(["Claude Code - via MCP, 64 tools"]):::actor
 
-    system{{"🛰️ multivendor-ai-network-lab<br/>Flask :5757 · closed-loop ops"}}:::core
+    system{{"multivendor-ai-network-lab - Flask :5757 closed-loop ops"}}:::core
 
-    labs["🧪 Two Labs<br/>CLOS EVPN-VXLAN + FRR backbone<br/>SRL · cEOS · FRR · Junos"]:::infra
-    anthropic["🧠 Anthropic API<br/>claude-haiku-4-5"]:::ai
-    tsdb["📊 InfluxDB 2.7<br/>+ Grafana 10.4"]:::data
-    sot["🗂️ NetBox / Batfish<br/>SoT · verification"]:::data
+    labs["Two Labs - CLOS EVPN-VXLAN and FRR backbone"]:::infra
+    anthropic["Anthropic API - claude-haiku-4-5"]:::ai
+    tsdb["InfluxDB 2.7 and Grafana 10.4"]:::data
+    sot["NetBox and Batfish - SoT and verification"]:::data
 
-    operator -->|"symptoms · changes"| system
+    operator -->|"symptoms, changes"| system
     agents -->|"tool calls"| system
-    system -->|"docker-exec · SSH"| labs
-    system -->|"diagnose · judge"| anthropic
+    system -->|"docker-exec, SSH"| labs
+    system -->|"diagnose, judge"| anthropic
     system -->|"line protocol"| tsdb
-    system -->|"drift · what-if"| sot
+    system -->|"drift, what-if"| sot
     labs -.->|"live state"| system
 
     classDef actor fill:#475569,stroke:#94a3b8,color:#fff
