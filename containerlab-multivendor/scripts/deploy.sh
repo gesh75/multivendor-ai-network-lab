@@ -22,6 +22,9 @@ NC='\033[0m'
 TOPOLOGY="${1:-clos-evpn}"
 TOPO_FILE="${TOPO_DIR}/${TOPOLOGY}.clab.yml"
 
+# shellcheck source=clab-common.sh
+source "${SCRIPT_DIR}/clab-common.sh"
+
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║  GESH Multi-Vendor Lab — Deploying: ${CYAN}${TOPOLOGY}${NC}${BOLD}              ║${NC}"
@@ -100,24 +103,8 @@ echo ""
 
 cd "$TOPO_DIR"
 
-# Check if containerlab is available
-if command -v containerlab &>/dev/null; then
-    sudo containerlab deploy -t "$TOPO_FILE" --reconfigure 2>&1
-elif command -v clab &>/dev/null; then
-    sudo clab deploy -t "$TOPO_FILE" --reconfigure 2>&1
-else
-    echo -e "${RED}[ERROR]${NC} containerlab not found in PATH."
-    echo ""
-    echo "If using OrbStack, run inside the VM:"
-    echo "  orb -m clab"
-    echo "  cd ${TOPO_DIR}"
-    echo "  sudo clab deploy -t ${TOPOLOGY}.clab.yml"
-    echo ""
-    echo "If using Docker Desktop devcontainer:"
-    echo "  Open this folder in VS Code → Reopen in Container"
-    echo "  clab deploy -t topologies/${TOPOLOGY}.clab.yml"
-    exit 1
-fi
+# Run containerlab (dockerized on macOS, native elsewhere)
+run_clab deploy -t "$TOPO_FILE" --reconfigure 2>&1
 
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"

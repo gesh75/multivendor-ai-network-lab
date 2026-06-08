@@ -27,18 +27,13 @@
 ## 1. Deploy / redeploy (verified working on macOS Docker Desktop)
 
 ```bash
-LABPATH=~/02_Projects/Network_Automation/VSS_Code_Georgi/04_Scripts_Tools/DCN_Network_Tool/containerlab-multivendor
-
-docker run --rm --privileged --network host --pid host \
-  -v "$HOME/.docker/run/docker.sock:/var/run/docker.sock" \
-  -v /run/netns:/run/netns \
-  -v "$LABPATH:$LABPATH" -w "$LABPATH/topologies" \
-  --entrypoint /usr/bin/containerlab \
-  ghcr.io/srl-labs/clab:latest deploy -t clos-evpn.clab.yml --reconfigure
+cd containerlab-multivendor
+./scripts/setup.sh
+./scripts/deploy.sh clos-evpn
 
 # SRL nodes boot blank — push their EVPN / bgp-vpn config (runs via docker exec
 # from the macOS host; no clab container needed):
-bash "$LABPATH/scripts/post-deploy-srl.sh" 30
+bash ./scripts/post-deploy-srl.sh 30
 
 # Resume telemetry scraping into InfluxDB:
 launchctl kickstart -k gui/$(id -u)/com.geshlab.clab-collector
@@ -47,10 +42,9 @@ launchctl kickstart -k gui/$(id -u)/com.geshlab.clab-collector
 Notes:
 - `--reconfigure` destroys + recreates the nodes and **rewires links** — required after a
   Docker restart (a plain `docker restart` of the containers does NOT rebuild veths).
-- The Docker Desktop socket is at `~/.docker/run/docker.sock` on this host; on a standard
-  install `/var/run/docker.sock` is symlinked and also works.
-- `--entrypoint /usr/bin/containerlab` is needed because the `clab` image's default
-  entrypoint isn't containerlab itself.
+- On macOS, `deploy.sh` runs `ghcr.io/srl-labs/clab:latest` with `--pid host`.
+- The Docker Desktop socket is detected at `~/.docker/run/docker.sock` or
+  `/var/run/docker.sock`. If yours is elsewhere, set `DOCKER_HOST_SOCKET=/path/to/docker.sock`.
 
 ## 2. Verify (expect non-zero BGP across all 9 network nodes)
 
@@ -64,7 +58,7 @@ docker exec clab-clos-evpn-spine3 vtysh -c 'show bgp summary'                   
 docker exec clab-clos-evpn-spine1 sr_cli "show network-instance default protocols bgp neighbor" # SRL
 docker exec clab-clos-evpn-spine2 Cli -p 15 -c "show bgp evpn summary"                           # cEOS
 
-# Or the repo verifier (run it from inside the devcontainer/OrbStack — see §3):
+# Or the repo verifier:
 ./scripts/verify.sh
 ```
 
@@ -72,10 +66,7 @@ A healthy fabric reports ~**54 BGP sessions up across 9 nodes** (3 spines × IPv
 underlay + EVPN overlay); a few peers may sit in non-established states during convergence
 or by design (FRR L3-VNI limits) — that is normal, not a failure.
 
-## 3. Alternatives to the dockerized command
-
-The repo's `./scripts/deploy.sh clos-evpn` calls a **native** `containerlab` binary, which
-this macOS host does not have. Run it from a Linux context where clab is native:
+## 3. Alternatives
 
 - **VS Code devcontainer** (config in repo: `containerlab-multivendor/.devcontainer/`,
   image `ghcr.io/srl-labs/containerlab/devcontainer-dood-slim`, already `--pid=host`).
@@ -83,7 +74,7 @@ this macOS host does not have. Run it from a Linux context where clab is native:
 - **OrbStack** Linux machine (`orb` is not installed on this host by default): install it,
   create a machine, install containerlab, then run `./scripts/*` from the mounted repo path.
 
-Both are optional conveniences — the §1 dockerized command works directly on macOS.
+Both are optional conveniences — the §1 wrapper scripts work directly on macOS.
 
 ## 4. Gotchas (carried from the workspace `CLAUDE.md` + the portal)
 

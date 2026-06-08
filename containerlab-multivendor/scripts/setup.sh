@@ -24,10 +24,10 @@ warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 fail()  { echo -e "${RED}[FAIL]${NC}  $*"; exit 1; }
 
 echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}╔═══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║     GESH Multi-Vendor Network Lab — Setup                  ║${NC}"
 echo -e "${BOLD}║     Nokia SR Linux · Arista cEOS · FRR                     ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════════════════════════╝${NC}"
+echo -e "${BOLD}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
 # ── Step 1: Check macOS & chip ──────────────────────────────────────────────
@@ -36,17 +36,23 @@ info "Checking system requirements..."
 ARCH=$(uname -m)
 OS=$(uname -s)
 
-if [[ "$OS" != "Darwin" ]]; then
-    fail "This script is designed for macOS. Detected: $OS"
-fi
-
-if [[ "$ARCH" == "arm64" ]]; then
-    ok "Apple Silicon detected ($ARCH)"
-else
-    warn "Intel Mac detected. Some images may require Rosetta."
-fi
-
-RAM_GB=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1073741824}')
+case "$OS" in
+    Darwin)
+        if [[ "$ARCH" == "arm64" ]]; then
+            ok "Apple Silicon detected ($ARCH)"
+        else
+            warn "Intel Mac detected. Some images may require Rosetta."
+        fi
+        RAM_GB=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1073741824}')
+        ;;
+    Linux)
+        ok "Linux detected ($ARCH)"
+        RAM_GB=$(awk '/MemTotal/ {printf "%.0f", $2/1048576}' /proc/meminfo)
+        ;;
+    *)
+        fail "Unsupported OS: $OS. Supported platforms: Ubuntu/Linux and macOS."
+        ;;
+esac
 info "System RAM: ${RAM_GB}GB"
 
 if (( RAM_GB < 16 )); then
@@ -59,23 +65,34 @@ else
 fi
 
 # ── Step 2: Install Homebrew packages ───────────────────────────────────────
-info "Checking Homebrew..."
-if ! command -v brew &>/dev/null; then
-    fail "Homebrew not found. Install: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+if [[ "$OS" == "Darwin" ]]; then
+    info "Checking Homebrew..."
+    if ! command -v brew &>/dev/null; then
+        fail "Homebrew not found. Install: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    fi
+    ok "Homebrew found"
+elif [[ "$OS" == "Linux" ]]; then
+    if ! command -v curl &>/dev/null; then
+        fail "curl not found. Install it first: sudo apt-get update && sudo apt-get install -y curl"
+    fi
 fi
-ok "Homebrew found"
 
 # ── Step 3: Docker runtime ─────────────────────────────────────────────────
 info "Checking Docker runtime..."
 
 DOCKER_RUNTIME="none"
 
-if command -v orb &>/dev/null; then
+if [[ "$OS" == "Darwin" ]] && command -v orb &>/dev/null; then
     DOCKER_RUNTIME="orbstack"
     ok "OrbStack detected (recommended)"
 elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
-    DOCKER_RUNTIME="docker-desktop"
-    ok "Docker Desktop detected"
+    if [[ "$OS" == "Darwin" ]]; then
+        DOCKER_RUNTIME="docker-desktop"
+        ok "Docker Desktop detected"
+    else
+        DOCKER_RUNTIME="docker-engine"
+        ok "Docker Engine detected"
+    fi
 
     # Check Docker Desktop memory allocation
     DOCKER_MEM=$(docker info 2>/dev/null | grep "Total Memory" | awk '{print $3}' | sed 's/GiB//')
@@ -90,6 +107,9 @@ elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
     fi
 else
     warn "No Docker runtime found."
+    if [[ "$OS" == "Linux" ]]; then
+        fail "Docker Engine is required. On Ubuntu: curl -fsSL https://get.docker.com | sudo sh"
+    fi
     echo ""
     echo "  Option A (Recommended): Install OrbStack"
     echo "    brew install orbstack"
@@ -117,7 +137,11 @@ if command -v containerlab &>/dev/null || command -v clab &>/dev/null; then
 else
     info "Installing containerlab..."
 
-    if [[ "$DOCKER_RUNTIME" == "orbstack" ]]; then
+    if [[ "$OS" == "Linux" ]]; then
+        # Linux: install the native containerlab binary
+        bash -c "$(curl -sL https://get.containerlab.dev)"
+        ok "containerlab installed"
+    elif [[ "$DOCKER_RUNTIME" == "orbstack" ]]; then
         # For OrbStack: install inside a Linux VM
         info "Creating 'clab' Linux VM in OrbStack..."
         orb create ubuntu:noble clab 2>/dev/null || true
@@ -208,7 +232,11 @@ info "Checking Ansible..."
 if command -v ansible &>/dev/null; then
     ok "Ansible found: $(ansible --version | head -1)"
 else
-    warn "Ansible not found. Install for automated config: brew install ansible"
+    if [[ "$OS" == "Darwin" ]]; then
+        warn "Ansible not found. Install for automated config: brew install ansible"
+    else
+        warn "Ansible not found. Install for automated config: sudo apt-get install -y ansible"
+    fi
 fi
 
 # ── Summary ─────────────────────────────────────────────────────────────────

@@ -112,12 +112,16 @@ This is the single most common trap; the full write-up is in
 [**CLOS_EVPN_MACOS_DEPLOY.md**](CLOS_EVPN_MACOS_DEPLOY.md).
 
 ```bash
-docker run --rm --privileged --network host --pid host \
-  -v "$HOME/.docker/run/docker.sock:/var/run/docker.sock" \
-  -v /run/netns:/run/netns \
-  -v "$LABPATH:$LABPATH" -w "$LABPATH/topologies" \
-  --entrypoint /usr/bin/containerlab \
-  ghcr.io/srl-labs/clab:latest deploy -t clos-evpn.clab.yml --reconfigure
+cd containerlab-multivendor
+./scripts/setup.sh                       # checks Docker runtime + pulls free images
+./scripts/deploy.sh clos-evpn            # uses ghcr.io/srl-labs/clab with --pid host
+```
+
+If Docker Desktop exposes its socket somewhere other than
+`$HOME/.docker/run/docker.sock` or `/var/run/docker.sock`, set it explicitly:
+
+```bash
+DOCKER_HOST_SOCKET=/path/to/docker.sock ./scripts/deploy.sh clos-evpn
 ```
 
 ### Post-deploy (both platforms): push SRL EVPN config
@@ -172,12 +176,8 @@ curl -s http://127.0.0.1:5757/api/mv/clab-status | python3 -m json.tool
 # Lab A
 cd network-lab && docker-compose down
 
-# Lab B (macOS)
-docker run --rm --privileged --network host --pid host \
-  -v "$HOME/.docker/run/docker.sock:/var/run/docker.sock" -v /run/netns:/run/netns \
-  -v "$LABPATH:$LABPATH" -w "$LABPATH/topologies" --entrypoint /usr/bin/containerlab \
-  ghcr.io/srl-labs/clab:latest destroy -t clos-evpn.clab.yml --cleanup
-# Lab B (Linux):  cd containerlab-multivendor && ./scripts/destroy.sh clos-evpn
+# Lab B (Linux or macOS)
+cd containerlab-multivendor && ./scripts/destroy.sh clos-evpn
 ```
 
 ---
