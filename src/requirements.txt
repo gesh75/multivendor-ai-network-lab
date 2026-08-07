@@ -9,3 +9,4 @@ defusedxml==0.7.1
 # anthropic SDK powers the /api/mv/orchestrator LLM path (Telegram /ask + AI Command);
 # if it's missing the orchestrator silently degrades to offline rule-based diagnosis.
 anthropic==0.105.2
+cryptography>=49.0.0
