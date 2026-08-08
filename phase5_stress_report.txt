@@ -1,10 +1,10 @@
 
 
 ════════ PHASE 5 STRESS REPORT ════════
-  forecast/predict (cpu)         20/20 ok · p50= 18.1ms p95= 18.7ms max= 18.7ms
-  forecast/predict (anom)        20/20 ok · p50= 18.5ms p95= 21.0ms max= 21.0ms
-  predict/run (drop)             20/20 ok · p50=  0.6ms p95=  0.9ms max=  0.9ms
-  predict/run (reject)           20/20 ok · p50=  0.5ms p95=  0.7ms max=  0.7ms
-  blast (shutdown)               20/20 ok · p50=  0.5ms p95=  0.6ms max=  0.6ms
-  blast (drop_peer)              20/20 ok · p50=  0.5ms p95=  0.6ms max=  0.6ms
+  forecast/predict (cpu)         0/20 ok · p50=  0.4ms p95=  0.5ms max=  0.5ms
+  forecast/predict (anom)        0/20 ok · p50=  0.3ms p95=  0.5ms max=  0.5ms
+  predict/run (drop)             0/20 ok · p50=  0.3ms p95=  0.5ms max=  0.5ms
+  predict/run (reject)           0/20 ok · p50=  0.3ms p95=  0.4ms max=  0.4ms
+  blast (shutdown)               0/20 ok · p50=  0.3ms p95=  0.4ms max=  0.4ms
+  blast (drop_peer)              0/20 ok · p50=  0.3ms p95=  0.6ms max=  0.6ms
 ═══════════════════════════════════════
