@@ -4,6 +4,37 @@ All notable changes to the DCN / AI Network Tool (`multivendor-ai-network-lab`) 
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); dates are
 `YYYY-MM-DD`.
 
+## [Unreleased] — 2026-06 → 2026-08
+
+Documentation pass against code that landed after Phase 6. No behavior change
+in this section — see the linked commits for the runtime fixes.
+
+### Added (code, already on `main`)
+- **Lab B on Ubuntu/Linux** (`91a6644`) — `setup.sh` / `deploy.sh` / `destroy.sh`
+  detect OS: native `containerlab` on Linux, `ghcr.io/srl-labs/clab` + `--pid host`
+  on macOS. Shared runners in `containerlab-multivendor/scripts/clab-common.sh`.
+- **CLI corpus extraction kit** (`beab1f4`) — `scripts/fetch_sources.sh` +
+  `scripts/parse_vendor_docs.py`. Cisco IOS MCL (~17,962) and Nokia SR OS (42,
+  `os=sros`) extractors validated and merged.
+- **cEOS eAPI in startup-config** (`66f54b6`) — `leaf1` / `leaf4` / `spine2`
+  enable `management api http-commands` (HTTPS:443) so NAPALM works after a
+  clean deploy.
+
+### Changed (code, already on `main`)
+- **YubiKey PIN fail-fast** (`2030b3e`) — `DCN_PKCS11_PIN` has no default;
+  unset PIN raises in `_pkcs11_init()` and boot falls back to key mode.
+- **Honest auto-remediate audit** (`d3a8d72`) — `/api/run` accepts
+  `runbook_exec: true` for allowlisted operational `clear` commands;
+  failures record `execute_failed` / GAIT `failed`, never a false `executed`.
+
+### Docs (this PR)
+- Env + security: `.env.example`, `docs/SECURITY_HARDENING.md`, `src/README.md`.
+- Phase 6: `docs/PHASE6_AUTO_REMEDIATION.md`, `docs/PHASE_6_AUTO_REMEDIATE.md`.
+- Lab B ops: `docs/BUILD_YOUR_OWN_LAB.md`, `docs/CLOS_EVPN_MACOS_DEPLOY.md`,
+  `containerlab-multivendor/{README,EVPN_RUNBOOK}.md`, `CLAUDE.md`.
+- Health + corpus: `docs/HEALTH_ENDPOINT.md` (SRL table, correct spine hostnames),
+  `docs/CLI_CORPUS_README.md`, `docs/CHANGE_PIPELINE.md` (eAPI vs docker-exec).
+
 ## [Phase 6 — Event-Initiated Auto-Remediation] — 2026-05-31
 
 Phase 6 sub-items **C** and **E** finished, plus backend audit-integrity hardening, network-

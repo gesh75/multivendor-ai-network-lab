@@ -15,8 +15,11 @@ routes, memory, CPU — collected in parallel over SSH (or `docker exec` for cla
 # Lab device (FRR vtysh)
 curl -s http://localhost:5757/api/health/de-fra-core-01 | jq
 
-# clab Arista cEOS node
+# clab Nokia SR Linux spine
 curl -s http://localhost:5757/api/health/clab-clos-evpn-spine1 | jq
+
+# clab Arista cEOS spine
+curl -s http://localhost:5757/api/health/clab-clos-evpn-spine2 | jq
 
 # 404 if hostname unknown
 curl -s http://localhost:5757/api/health/no-such-device
@@ -85,19 +88,26 @@ The dashboard can render partial data without null-checking every field.
 
 ## Command fan-out
 
-Per-vendor command tables live in `src/health.py` (`FRR_COMMANDS`, `EOS_COMMANDS`,
-`JUNOS_COMMANDS`). Each section runs **one** command and tries the next as a fallback
-only if the first failed or produced empty output.
+Per-vendor command tables live in `src/drivers/commands.py` (single source of
+truth, also used by the telemetry collector). `src/health.py` imports those
+tables and keeps local `FRR_COMMANDS` / `EOS_COMMANDS` / `JUNOS_COMMANDS` /
+`SRL_COMMANDS` as a fallback if the drivers package is not importable. Each
+section runs **one** command and tries the next as a fallback only if the first
+failed or produced empty output.
 
-| Section      | FRR command                          | Arista EOS                         | Junos                              |
-|--------------|--------------------------------------|------------------------------------|------------------------------------|
-| version      | `show version`                       | `show version \| json`             | `show version \| display json`     |
-| bgp          | `show ip bgp summary json`           | `show ip bgp summary \| json`      | `show bgp summary \| display json` |
-| ospf         | `show ip ospf neighbor json`         | `show ip ospf neighbor \| json`    | `show ospf neighbor \| display json` |
-| interfaces   | `show interface brief json`          | `show interfaces status \| json`   | `show interfaces terse \| display json` |
-| routes       | `show ip route summary json`         | `show ip route summary \| json`    | `show route summary \| display json` |
-| memory       | `show memory summary`                | `show processes top once \| json`  | `show system memory \| display json` |
-| cpu          | `show thread cpu`                    | `show processes top once \| json`  | `show system processes extensive`  |
+| Section      | FRR                                  | Arista EOS                         | Junos                              | Nokia SR Linux |
+|--------------|--------------------------------------|------------------------------------|------------------------------------|----------------|
+| version      | `show version`                       | `show version \| json`             | `show version \| display json`     | `info from state /system information version` |
+| bgp          | `show ip bgp summary json`           | `show ip bgp summary \| json`      | `show bgp summary \| display json` | `show network-instance default protocols bgp neighbor` |
+| ospf         | `show ip ospf neighbor json`         | `show ip ospf neighbor \| json`    | `show ospf neighbor \| display json` | `show network-instance default protocols ospf neighbor` |
+| interfaces   | `show interface brief json`          | `show interfaces status \| json`   | `show interfaces terse \| display json` | `show interface` |
+| routes       | `show ip route summary json`         | `show ip route summary \| json`    | `show route summary \| display json` | `show network-instance default route-table ipv4-unicast summary` |
+| memory       | `show memory summary`                | `show processes top once \| json`  | `show system memory \| display json` | `info from state /platform memory` |
+| cpu          | `show thread cpu`                    | `show processes top once \| json`  | `show system processes extensive`  | `info from state /platform control cpu` |
+
+SRL uses `sr_cli` (no reliable `| json` across commands). Inventory aliases
+`nokia-srl` / `srl` / `nokia` all map to `SRL_COMMANDS`. `dtype` in `meta` can
+be `frr` · `eos` · `junos` · `arista-eos` · `nokia-srl`.
 
 All commands run **in parallel** via `ThreadPoolExecutor` — one section's slow command
 never blocks the others. Per-command timeout: 15 s. Total snapshot deadline: 30 s.
@@ -115,9 +125,11 @@ Junos `| display json`) and legacy devices — same shape, same dashboard.
 
 ## Adding a new vendor
 
-1. Add a `<VENDOR>_COMMANDS` dict to `src/health.py` mapping each schema section to a list
+1. Add a `<VENDOR>_COMMANDS` dict to `src/drivers/commands.py` (and the matching
+   fallback literals in `src/health.py`) mapping each schema section to a list
    of commands (most-preferred first, fallbacks after).
-2. Register it in `COMMAND_MAP` under whatever `dtype` value the inventory uses.
+2. Register it in `COMMAND_MAP` / the driver alias map under whatever `dtype`
+   value the inventory uses.
 3. Where vendor JSON output uses different keys, extend the parsers (e.g. `_parse_bgp`)
    with an `elif` branch for the new shape.
 4. Add a unit test in `src/tests/test_health.py` with a canned output fixture.
