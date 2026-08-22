@@ -90,6 +90,11 @@ Both are optional conveniences — the §1 wrapper scripts work directly on macO
   `show running-config` is empty, run `vtysh -b` in the node to read it in.
 - **FRR has no kernel VRF in-container** — L3 VNI 50001 can't decap on FRR leafs; host6 bond
   primary is pinned to SRL leaf5 (by design, documented in the portal).
+- **cEOS eAPI is startup-config only** — `leaf1` / `leaf4` / `spine2` ship
+  `management api http-commands` + `no shutdown` so NAPALM can reach HTTPS:443 on
+  a clean deploy. Enabling eAPI in-place is not durable (uwsgi starts at boot).
+  Do **not** `docker restart` a node to pick it up — that destroys veths; redeploy
+  with `./scripts/deploy.sh clos-evpn`.
 
 ## 5. What does NOT depend on this fabric
 

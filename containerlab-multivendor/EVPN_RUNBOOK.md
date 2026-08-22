@@ -36,16 +36,27 @@ L3 VRF `TENANT-A` (cEOS only currently): L3 VNI 50001, RT `1:50001`.
 
 ## Deploy / Redeploy
 
+Use the wrapper scripts — they pick **native `containerlab`** on Linux (sudo-aware)
+and the **`ghcr.io/srl-labs/clab` image with `--pid host`** on macOS Docker Desktop.
+Do not copy a raw `containerlab deploy` from a Linux box onto macOS without that flag.
+
 ```bash
 cd containerlab-multivendor
-sudo containerlab destroy -t topologies/clos-evpn.clab.yml
-sudo containerlab deploy  -t topologies/clos-evpn.clab.yml
-./scripts/check_fabric.sh
+./scripts/setup.sh
+./scripts/deploy.sh clos-evpn
+bash ./scripts/post-deploy-srl.sh 30    # SRL nodes boot blank — required
+./scripts/verify.sh                     # or ./scripts/check_fabric.sh
 ```
 
-The FRR leaf Linux netdev setup (lo1, bridge, VXLAN, host-port attach) is baked into the topology YAML `exec:` blocks for leaf3 and leaf6 — no post-deploy script needed.
+The FRR leaf Linux netdev setup (lo1, bridge, VXLAN, host-port attach) is baked into the topology YAML `exec:` blocks for leaf3 and leaf6 — no extra FRR bootstrap script needed.
 
-Expected outcome: `RESULT: 37 checks passed, 0 failed`.
+Expected outcome: a healthy fabric reports ~54 BGP sessions up across the 9 network nodes (`verify.sh` / collector). Older `check_fabric.sh` output still says `37 checks passed` on the underlay/overlay subset.
+
+**cEOS eAPI (NAPALM):** `leaf1`, `leaf4`, and `spine2` startup-configs enable
+`management api http-commands` (HTTPS:443, default VRF) plus a local `admin`
+user. That is the durable path — cEOS's eAPI uwsgi backend only spawns at boot.
+Never `docker restart` a clab node to "turn eAPI on"; redeploy with
+`./scripts/deploy.sh clos-evpn` (`--reconfigure`).
 
 ## Multi-vendor design decisions
 
@@ -96,9 +107,14 @@ docker exec clab-clos-evpn-host5 ping -c 3 10.10.30.2   # SRL  ↔ FRR
 docker exec clab-clos-evpn-spine2 Cli -p 15 -c 'show bgp evpn'
 ```
 
-## Next workstreams (not yet done)
+## Shipped since the original bring-up (do not re-open as greenfield)
 
-- **L3 IRB on SRL/FRR leaves.** Currently only cEOS leaves have TENANT-A VRF with anycast GW. Adding it on SRL (`irb` interface) and FRR (`vrf TENANT-A` + bridge SVI) would enable cross-VLAN routing (e.g., host1 in VLAN 10 → host3 in VLAN 20) via EVPN Type-5.
-- **BFD across underlay.** Sessions use 3/9s timers but no BFD — adding BFD would catch failures in <1s.
-- **EVPN ESI/multihoming.** Topology has only single-homed hosts; for production realism, dual-home a host across two leaves with EVPN ES.
-- **Grafana dashboards.** gnmic→InfluxDB→Grafana stack runs but only collects underlay metrics; add EVPN peer count, route count per VNI, VTEP tunnel state panels.
+- **ESI-LAG dual-homing** — hosts are dual-homed (anycast MAC `00:00:5E:00:53:01`). Pairing: rack-1 leaf1(cEOS)+leaf2(SRL), rack-2 leaf3(FRR)+leaf4(cEOS), rack-3 leaf5(SRL)+leaf6(FRR). Ethernet-segment IDs must match across the pair (Type-0 10-byte ESI).
+- **IPv6 dual-stack underlay** — `fd00:dc1::/48` on P2P links and loopbacks; spines/leafs peer IPv6 eBGP alongside IPv4.
+- **cEOS eAPI for NAPALM** — baked into spine2 / leaf1 / leaf4 startup-configs (see Deploy).
+
+## Remaining gaps
+
+- **Symmetric IRB is incomplete across vendors.** FRR leaf3/leaf6 carry `vrf TENANT-A` and anycast SVIs (`10.10.20.254` / `10.10.30.254`). FRR in-container has no kernel VRF, so L3 VNI 50001 cannot decap on those leafs (host6 bond primary stays on SRL leaf5). SRL IRB / Type-5 inter-VLAN routing is still the unfinished L3 piece.
+- **BFD on the underlay.** FRR `bfdd` is enabled in daemons files; per-session BFD on cEOS/SRL underlay neighbors is not a completed fabric-wide feature.
+- **Grafana EVPN panels.** gnmic→InfluxDB→Grafana collects underlay metrics; EVPN peer count, per-VNI route count, and VTEP tunnel state panels are still backlog.

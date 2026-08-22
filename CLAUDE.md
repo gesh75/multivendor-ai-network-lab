@@ -23,6 +23,12 @@ telemetry), InfluxDB + Grafana, static HTML ops portal.
   gateway (L3 VNI 50001, TENANT-A VRF), IPv6 dual-stack (fd00:dc1::/48).
 - Configs: `containerlab-multivendor/configs/{spine,leaf}/`. SRL nodes need a post-deploy
   push: `containerlab-multivendor/scripts/post-deploy-srl.sh [wait-seconds]`.
+- Bring-up: `containerlab-multivendor/scripts/{setup,deploy,destroy}.sh`. Linux uses
+  native `containerlab` (sudo-aware). macOS Docker Desktop uses
+  `ghcr.io/srl-labs/clab` with `--pid host` (`scripts/clab-common.sh`).
+- cEOS eAPI is baked into `leaf1` / `leaf4` / `spine2` startup-configs for NAPALM
+  (`management api http-commands`, HTTPS:443). Do not `docker restart` a node to
+  enable it — redeploy with `--reconfigure`.
 
 ### DCN Multi-Region Backbone (docker-compose)
 - **Compose:** `network-lab/docker-compose.yml`. 10 FRR routers (5 core + edge/dist),
@@ -95,6 +101,14 @@ both `.normalized` (dict) and `.raw` (text). Wired into `src/health.py` and
    emit harmless "Unknown command" warnings.
 6. **Mermaid diagrams must render lazily** — `startOnLoad:false` + render-on-show; rendering
    a `.mermaid` block while its panel is `display:none` produces a "Syntax error" bomb.
+7. **cEOS eAPI only starts at boot** — in-place `management api http-commands` is not
+   durable (uwsgi). Startup-configs already enable it; a `docker restart` to pick up a
+   live change destroys clab veths.
+8. **`DCN_PKCS11_PIN` has no default** — `DCN_SSH_MODE=pkcs11` fails init and falls
+   back to key mode if the PIN is unset. Lab/CI should set `DCN_SSH_MODE=key`.
+9. **`setup.sh` used to hard-fail off Darwin** — it now accepts Linux (`/proc/meminfo`,
+   native get.containerlab.dev install, docker-engine runtime). `.gitattributes`
+   pins `*.sh` to LF so a CRLF round-trip cannot break shebangs.
 
 ---
 

@@ -142,6 +142,14 @@ Uses `_collect_state_snapshot()` (NAPALM-based). For FRR devices (no NETCONF /
 eAPI) NAPALM hangs at `conn.open()`, so the orchestrator short-circuits with
 `{skipped: true, reason: "NAPALM doesn't support frr"}`.
 
+For **Lab B cEOS** (`leaf1`, `leaf4`, `spine2`) a clean `containerlab deploy`
+now starts eAPI (`management api http-commands`, HTTPS:443, default VRF) from
+startup-config. That is what the native NAPALM `eos` driver needs. Enabling
+eAPI in-place is not durable; do not `docker restart` a clab node to pick it
+up. The docker-exec `_clab_eos_collect()` path (`Cli -p 15 -c '… | json'`)
+still works without eAPI and is what the vendor-aware NAPALM-equivalent
+collectors use for the fabric tabs.
+
 For Junos/EOS: capped at 15s timeout, then diffs against the PRE snapshot
 captured by the gate. Diff types:
 

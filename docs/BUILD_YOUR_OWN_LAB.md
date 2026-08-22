@@ -167,6 +167,7 @@ curl -s http://127.0.0.1:5757/api/mv/clab-status | python3 -m json.tool
 | SRL node has zero BGP config | missing global `bgp-vpn` instance | `post-deploy-srl.sh` pushes it — don't skip it |
 | FRR `/etc/frr/frr.conf` has content but `show running-config` is empty | config not read at boot | run `vtysh -b` inside the node |
 | `docker pull ceosimage` fails | cEOS isn't on a public registry | download + `docker import` (§0) |
+| NAPALM/eAPI against cEOS returns connection refused after an in-place enable | cEOS eAPI's uwsgi backend only spawns at boot; `docker restart` also destroys clab veths | eAPI is **baked into** `leaf1`/`leaf4`/`spine2` startup-configs (`management api http-commands`, HTTPS:443, default VRF). Redeploy with `./scripts/deploy.sh clos-evpn` (`--reconfigure`) — never restart a node to flip eAPI |
 
 ---
 
