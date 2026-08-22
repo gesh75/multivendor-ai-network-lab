@@ -69,6 +69,12 @@ uses a *separate* `DCN_API_KEY` env var — never cross-wire the two.)
   into any config/command payload — control characters, shell/config metacharacters, and
   malformed IPs are rejected. A failing value parks the action `rejected_invalid_field` and
   it is **never executed**, even from an untrusted source.
+* **Honest exec audit.** LOW-tier `clear` runbooks use `POST /api/run` with
+  `runbook_exec: true` (allowlisted operational prefixes only). If `/api/run`
+  returns non-2xx or `success: false`, the engine records `execute_failed` and
+  a GAIT verdict `failed` — never `executed`. Interactive callers without the
+  flag still get 403 on `clear`. See
+  [`PHASE6_AUTO_REMEDIATION.md`](PHASE6_AUTO_REMEDIATION.md) §5.
 
 ## Enable the background loop (opt-in)
 
