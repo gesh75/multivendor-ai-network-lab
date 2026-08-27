@@ -34,7 +34,10 @@ cd scripts/                             # the kit lives here
 # 1. download the source docs (needs internet; poppler recommended for parsing)
 chmod +x fetch_sources.sh
 ./fetch_sources.sh                      # all, or: ./fetch_sources.sh cisco_ios_mcl
-brew install poppler                    # or: pip install pypdf
+# poppler (pdftotext -layout) preferred; pypdf is the fallback
+#   macOS:  brew install poppler
+#   Debian: sudo apt-get install -y poppler-utils
+#   either: pip install pypdf
 
 # 2. parse to intermediate JSON (preview first with --limit)
 python3 parse_vendor_docs.py --source extreme_exos_cref --limit 50
@@ -61,10 +64,16 @@ python3 parse_vendor_docs.py --all      # writes scripts/out/<id>.json
 
 ## Notes for the parsing agent
 
-- `parse_vendor_docs.py` is a **scaffold** — the per-source `style_*` extractors are
-  starting regexes. Tune them against the real `pdftotext -layout` dump; doc layouts
-  vary. The EXOS and Cisco command-ref styles are the most reliable; the Nokia tree
-  flattener needs the most refinement.
+- `parse_vendor_docs.py` still ships untuned extractors for some sources, but two
+  are **validated on real text and merged** into `multivendor-cli-configurator`:
+  - `style_cisco_mcl` — IOS Master Command List (book-codes are single-space
+    appended, not column-aligned). 73-entry book→category map; ~17,962 commands,
+    `cat:Misc` ≈ 0.1%.
+  - `style_nokia_sros` — dash-help + console-table extraction, `os=sros`
+    (distinct from `os=srlinux`); 42 records.
+  `parse_source` accepts an optional 4th tuple element (category hint) used
+  when `categorize()` returns `Misc`. Remaining scaffolds: Extreme EXOS, both
+  SR Linux guides. Full status table: [`CLI_CORPUS_AGENT_TASKS.md`](CLI_CORPUS_AGENT_TASKS.md).
 - Always **dedup by `cmd`** against the existing `commands.json` — the medium-priority
   Cisco refs overlap the MCL by design.
 - Register `os=sros` as distinct from `os=srlinux`; they are different Nokia CLIs.

@@ -135,3 +135,28 @@ Follow-up items (none are secrets):
 ("AEGIS" naming in a commit message; the pre-existing `app.py` AEGIS block) are an internal
 naming-disclosure question, **not** a credential leak, and are deferred to the human for a
 reword/redaction decision — never force-push without that decision.
+
+---
+
+## YubiKey PKCS#11 PIN — fail-fast, no default (2026-06-09)
+
+`DCN_SSH_MODE` defaults to `pkcs11`. The PIN used to login the YubiKey PIV token is read
+from **`DCN_PKCS11_PIN` only**. There is no hardcoded fallback.
+
+```python
+PKCS11_PIN = os.environ.get("DCN_PKCS11_PIN")   # required in pkcs11 mode
+# ...
+if not PKCS11_PIN:
+    raise RuntimeError("DCN_PKCS11_PIN is not set — export it to use pkcs11/YubiKey SSH mode")
+```
+
+If init fails (PIN unset, no token, library missing), boot logs
+`[SSH] PKCS#11 init failed: … — falling back to key mode` and switches `SSH_MODE` to
+`key` (`src/app.py`). Lab / CI boxes that never present a YubiKey should set
+`DCN_SSH_MODE=key` explicitly so they do not depend on that fallback.
+
+**Operator constraint:** removing the default from source does **not** un-expose a PIN
+that already lived in git history. Rotate the physical YubiKey PIV PIN if that slot
+was ever used with the old default.
+
+See `.env.example` for the env-var names (`DCN_PKCS11_PIN`, `DCN_PKCS11_LIB`).

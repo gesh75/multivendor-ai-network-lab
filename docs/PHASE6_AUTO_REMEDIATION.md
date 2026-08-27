@@ -133,7 +133,42 @@ discipline already used for placeholder values. The **approve** route is intenti
 body-less and hardcodes `actor="mcp-approved"` — there is no operator-attribution body to
 inject through.
 
-### 5. Single global `X-API-Key` gate (no per-route auth, no double-gating)
+### 5. Sanctioned `runbook_exec` path + honest GAIT (2026-06-12)
+
+LOW-tier exec runbooks (`bgp_flap_reset` → `clear bgp * soft`,
+`interface_error_spike` → `clear counters {interface}`) auto-execute through
+`_ar_run_exec` → `POST /api/run`. The interactive `/api/run` guard
+(`is_command_blocked`) still **403s** any `clear …` for normal callers.
+
+An authenticated caller may set `"runbook_exec": true`. That flag only unlocks
+this operational allowlist (`is_runbook_exec_allowed` in `src/app.py`):
+
+```
+clear bgp … | clear counters… | clear ip bgp … | clear ipv6 bgp …
+```
+
+`configure` / `set` / `delete` / `commit` / `request system` / `file` stay
+blocked even **with** the flag. The interactive UI never sends the flag.
+
+Audit integrity: `_ar_run_exec` now surfaces non-2xx **and** `success: false`
+as `{ok: false, …}`. `_execute()` uses `exec_failed()`; on failure it writes
+status `execute_failed` and a GAIT verdict **`failed`** — never `executed`.
+The exception path also logs `failed`. Tests:
+`src/tests/test_auto_remediate_run_audit.py`.
+
+```bash
+# sanctioned (already past X-API-Key; auto-remediate engine does this)
+curl -s -X POST -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
+  -d '{"hostname":"de-fra-core-01","raw":"clear bgp * soft","runbook_exec":true}' \
+  http://127.0.0.1:5757/api/run
+
+# interactive caller, no flag → 403
+curl -s -X POST -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
+  -d '{"hostname":"de-fra-core-01","raw":"clear bgp * soft"}' \
+  http://127.0.0.1:5757/api/run
+```
+
+### 6. Single global `X-API-Key` gate (no per-route auth, no double-gating)
 
 `src/app.py` carries a global `before_request` gate (`src/app.py:111`) that protects **every
 non-GET/HEAD/OPTIONS** request via `_is_protected_request()` (`src/app.py:102`). It:

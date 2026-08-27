@@ -1,7 +1,9 @@
-# Multi-Vendor Network Lab — Containerlab on Apple Silicon
+# Multi-Vendor Network Lab — Containerlab (Linux + macOS)
 
-**15-node multi-vendor data center fabric** running on macOS M4 Max (36GB)
-with full EVPN-VXLAN, BGP, OSPF, STP, and L2/L3/L4 protocol support.
+**15-node multi-vendor data center fabric** (3 spines + 6 leafs + 6 hosts)
+with EVPN-VXLAN, eBGP underlay + eBGP EVPN overlay, ESI-LAG, and dual-stack.
+`./scripts/setup.sh` and `./scripts/deploy.sh` work on **Ubuntu/Linux** (native
+containerlab) and **macOS Docker Desktop** (clab image + `--pid host`).
 
 ## Architecture
 
@@ -47,16 +49,21 @@ with full EVPN-VXLAN, BGP, OSPF, STP, and L2/L3/L4 protocol support.
    VNI 10010            VNI 10020            VNI 10030
 ```
 
+> The sketch above is schematic. The **live** `clos-evpn` topology is 3 spines +
+> **6** leafs + 6 dual-homed hosts (not 9 leafs). Leaf roles and ESIs are in
+> [`EVPN_RUNBOOK.md`](EVPN_RUNBOOK.md). Overlay peering is **eBGP** (per-leaf
+> AS 65001–65006 → spines 65100), not iBGP.
+
 ## Vendors Used
 
 | Vendor | Image | RAM/node | Role | License |
 |--------|-------|----------|------|---------|
-| **Nokia SR Linux** | `ghcr.io/nokia/srlinux` | ~1.5GB | Spine + Leaf | Free (public registry) |
-| **Arista cEOS** | `ceosimage:latest` | ~1.5GB | Spine + Leaf | Free (arista.com guest portal) |
-| **FRR** | `frrouting/frr:latest` | ~0.2GB | Spine + Leaf (simulates Cisco/Juniper) | Free (open source) |
-| **Linux hosts** | `alpine:latest` | ~0.05GB | End hosts | Free |
+| **Nokia SR Linux** | `ghcr.io/nokia/srlinux:24.10.3` | ~1.5GB | Spine + Leaf | Free (public registry) |
+| **Arista cEOS** | `ceosimage:4.33.1F` | **4 GB** (pinned — 2.5 GB OOM-thrashes) | Spine + Leaf | Free (arista.com guest portal; `docker import`) |
+| **FRR** | `frrouting/frr:latest` | ~0.2GB | Spine + Leaf | Free (open source) |
+| **Linux hosts** | `ghcr.io/hellt/network-multitool` | ~0.05GB | Dual-homed end hosts | Free |
 
-**Total RAM: ~15-18GB** — fits comfortably on M4 Max 36GB.
+**Budget ~16 GB free RAM** for Lab B (3× cEOS × 4 GB). `setup.sh` warns below 32 GB and fails below 16 GB.
 
 ## Available Topologies
 
@@ -75,6 +82,7 @@ with full EVPN-VXLAN, BGP, OSPF, STP, and L2/L3/L4 protocol support.
 
 # 2. Deploy the Clos EVPN fabric (default)
 ./scripts/deploy.sh clos-evpn
+bash ./scripts/post-deploy-srl.sh 30   # SRL nodes boot blank
 
 # 3. Verify the fabric
 ./scripts/verify.sh
@@ -94,11 +102,11 @@ This lab integrates with the existing DCN Network Tool ecosystem:
 
 | Tool | Integration | Port |
 |------|-------------|------|
-| **multivendor-ai-network-lab** | Health Gate, Remediation, SoT drift | :5000 |
-| **netlog-ai** | Log analysis, anomaly detection | :5001 |
-| **DCN_Network_Tool** | CLI configurator, compliance scan | :8080 |
-| **Grafana** | gNMI telemetry dashboards | :3000 |
-| **InfluxDB** | Time-series metrics store | :8086 |
+| **AI Network Tool** (`src/app.py`) | Health Gate, Remediation, SoT drift, NAPALM | `:5757` (loopback) |
+| **Demo UI** | static v4 dashboard | `:8080` |
+| **Fabric ops portal** | topology / Mermaid / configs | `:8099` (`portal.html`) |
+| **Grafana** | gNMI telemetry dashboards | `:3000` |
+| **InfluxDB** | Time-series metrics store | `:8086` |
 
 ## Protocols Demonstrated
 
@@ -109,8 +117,8 @@ This lab integrates with the existing DCN Network Tool ecosystem:
 - **ARP/MAC learning** — Dynamic MAC tables, ARP suppression in EVPN
 
 ### Layer 3
-- **eBGP underlay** — RFC 7938 Clos fabric with per-leaf ASN
-- **iBGP overlay** — MP-BGP EVPN address family with route reflectors
+- **eBGP underlay** — RFC 7938 Clos fabric with per-leaf ASN (65001–65006, spines 65100)
+- **eBGP EVPN overlay** — multihop loopback peering; spines as RR-clients / transit (not iBGP)
 - **OSPF** — Underlay alternative (3-tier topology)
 - **BFD** — Sub-second failure detection on all BGP sessions
 - **ECMP** — Equal-cost multipath across spine layer
@@ -127,4 +135,4 @@ This lab integrates with the existing DCN Network Tool ecosystem:
 - **gNMI streaming telemetry** — SR Linux + cEOS
 - **NETCONF/YANG** — Configuration management
 - **SSH/CLI** — Direct device access
-- **REST API** — SR Linux JSON-RPC, cEOS eAPI
+- **REST API** — SR Linux JSON-RPC; cEOS eAPI on spine2/leaf1/leaf4 (`management api http-commands`, HTTPS:443 — baked into startup-config for NAPALM)

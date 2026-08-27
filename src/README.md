@@ -59,7 +59,8 @@ pip install -r requirements.txt
 
 # Configure credentials
 cp .env.example .env
-# Edit .env: NETBOX_URL, NETBOX_TOKEN, PKCS11_LIB, SSH_USER, YUBIKEY_PIN, LLM_*
+# Edit .env: NETBOX_URL, NETBOX_TOKEN, DCN_PKCS11_PIN, DCN_SSH_USER, LLM_*
+# DCN_PKCS11_PIN is required when DCN_SSH_MODE=pkcs11 (no default PIN).
 
 python3 app.py
 # Open http://localhost:5757
@@ -261,7 +262,7 @@ When pointed at a real network (via `.env`):
 - **7,300+ NetBox records**: 60 sites, 7,303 devices, 11,645 VMs, 37,526 IPs, 428 circuits
 - **Juniper**: SRX (firewall), MX (core router), EX/QFX (access/distribution)
 - **Arista**: EOS switches
-- **SSH auth**: YubiKey PIV smart card (PKCS11) — no passwords, no shared keys
+- **SSH auth**: YubiKey PIV (`DCN_SSH_MODE=pkcs11` + `DCN_PKCS11_PIN`) or key file (`DCN_SSH_MODE=key`). PKCS#11 has no baked-in PIN; unset PIN fails init and falls back to key mode.
 - **LLM**: Qwen3 via Docker Model Runner — on-prem, no data leaves the network
 
 ---
