@@ -230,7 +230,7 @@
       <a href="#stack">Tech Stack</a>
       <a href="#components">Components</a>
       <a href="#quickstart">Quickstart</a>
-      <a href="portal.html">Fabric Portal</a>
+      <a href="portal.html">Lab Ops portal</a>
     </nav>
   </div>
 </header>
@@ -399,7 +399,7 @@
   <text x="959" y="121" text-anchor="middle" class="label" font-size="9" fill="#ddd6fe">Pydantic · Anthropic</text>
 
   <g class="node pulse p5" filter="url(#glow)"><rect x="1018" y="234" width="92" height="34" rx="9" fill="#f472b6" opacity="0.92"/></g>
-  <text x="1064" y="255" text-anchor="middle" class="label" font-size="10" fill="#1a0a14">MCP · 64 tools</text>
+  <text x="1064" y="255" text-anchor="middle" class="label" font-size="10" fill="#1a0a14">MCP · 69 tools</text>
   <g class="spark"><circle cx="1064" cy="234" r="2.5" fill="#f472b6"/></g>
 
   <!-- driver layer chip -->
@@ -438,16 +438,16 @@
           <h1 class="grad">multivendor-ai-network-lab</h1>
           <p class="tagline">A 26-device multivendor (Juniper / Arista / FRR) network operations lab driven by a Pydantic-AI orchestrator, eval harness, and immutable AI audit trail.</p>
           <div class="chips" id="chips" aria-label="Project statistics" role="group">
-            <div class="chip"><span class="num" data-to="26">0</span><span class="lab">lab devices</span></div>
-            <div class="chip"><span class="num" data-to="5">0</span><span class="lab">sites</span></div>
-            <div class="chip"><span class="num" data-to="64">0</span><span class="lab">MCP tools</span></div>
-            <div class="chip"><span class="num" data-to="40" data-suffix="+">0</span><span class="lab">REST endpoints</span></div>
-            <div class="chip"><span class="num" data-to="9802" data-comma="1">0</span><span class="lab">CLI corpus (BM25)</span></div>
-            <div class="chip"><span class="num" data-raw="137 / 137">0</span><span class="lab">backend pytest</span></div>
+            <div class="chip"><span class="num" data-to="26">26</span><span class="lab">lab devices</span></div>
+            <div class="chip"><span class="num" data-to="5">5</span><span class="lab">sites</span></div>
+            <div class="chip"><span class="num" data-to="69">69</span><span class="lab">MCP tools</span></div>
+            <div class="chip"><span class="num" data-to="55" data-suffix="+">55+</span><span class="lab">REST endpoints</span></div>
+            <div class="chip"><span class="num" data-to="9802" data-comma="1">9,802</span><span class="lab">CLI corpus (BM25)</span></div>
+            <div class="chip"><span class="num" data-raw="137 / 137">137 / 137</span><span class="lab">backend pytest</span></div>
           </div>
           <div class="cta">
             <a class="btn btn-primary" href="https://github.com/gesh75/multivendor-ai-network-lab" target="_blank" rel="noopener">↗ GitHub repo</a>
-            <a class="btn btn-ghost" href="portal.html">▦ Fabric Portal</a>
+            <a class="btn btn-ghost" href="portal.html">▦ Lab Ops portal</a>
             <a class="btn btn-ghost" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener">⚒ Build your own lab</a>
             <a class="btn btn-ghost" href="#quickstart">↓ Quickstart</a>
           </div>
@@ -462,7 +462,7 @@
       <p class="eyebrow">Overview</p>
       <h2 class="sect" id="overview-h">What it <span class="grad">is</span></h2>
       <p class="lede">Multivendor AI Network Lab is a closed-loop NetOps reference implementation: two real labs — a containerlab CLOS EVPN-VXLAN fabric and a docker-compose FRR backbone — are driven by a Flask monolith whose core is a vendor-neutral driver abstraction layer.</p>
-      <p class="lede" style="margin-top:14px">It solves the problem of safely operating heterogeneous Juniper/Arista/FRR networks with AI, running an <strong style="color:var(--cyan)">observe → diagnose → remediate → verify → document</strong> loop with RFC 6241 confirmed-commit safety and auto-rollback. The whole surface is exposed to AI agents through a 64-tool MCP server and to humans through a web UI and Telegram bot. It is built as a portfolio / demo lab, not a production system.</p>
+      <p class="lede" style="margin-top:14px">It solves the problem of safely operating heterogeneous Juniper/Arista/FRR networks with AI, running an <strong style="color:var(--cyan)">observe → diagnose → remediate → verify → document</strong> loop with RFC 6241 confirmed-commit safety and auto-rollback. The whole surface is exposed to AI agents through a 69-tool MCP server and to humans through a web UI and Telegram bot. It is built as a portfolio / demo lab, not a production system.</p>
     </div>
   </section>
 
@@ -479,7 +479,7 @@
         <article class="card reveal"><span class="ico" aria-hidden="true">🛡️</span><h3>Health Gate confirmed-commit</h3><p>RFC 6241 §8.4 confirmed-commit gate: every config change runs inside a watch window and auto-reverts if any signal degrades.</p></article>
         <article class="card reveal"><span class="ico" aria-hidden="true">⚙️</span><h3>Vendor-neutral driver core</h3><p>BaseNetworkDriver template method with a <code style="font-family:var(--mono);color:var(--cyan)">get_driver()</code> factory maps each vendor (FRR/EOS/SRL/Junos/IOSXR) to a concrete driver and transport, returning a frozen, soft-failing DriverResult.</p></article>
         <article class="card reveal"><span class="ico" aria-hidden="true">🤖</span><h3>Pydantic-AI multi-agent orchestrator</h3><p>Structured-output Routing / ACL / Incident agents route symptoms to diagnoses; degrades to deterministic offline mode without an Anthropic API key.</p></article>
-        <article class="card reveal"><span class="ico" aria-hidden="true">🔌</span><h3>64-tool MCP server</h3><p>A FastMCP surface exposes every capability so Claude Code, Cursor, and opencode can call the lab directly as agent tools.</p></article>
+        <article class="card reveal"><span class="ico" aria-hidden="true">🔌</span><h3>69-tool MCP server</h3><p>A FastMCP surface exposes every capability so Claude Code, Cursor, and opencode can call the lab directly as agent tools.</p></article>
         <article class="card reveal"><span class="ico" aria-hidden="true">📜</span><h3>GAIT immutable audit + auto-postmortem</h3><p>Every AI action is appended to a JSONL ledger with token cost; the postmortem writer stitches GAIT + Health Gate + Remediation events into structured markdown incident reports.</p></article>
         <article class="card reveal"><span class="ico" aria-hidden="true">📖</span><h3>NetBox SoT drift detection</h3><p>Severity-tiered (critical/high/medium/low) comparison between the NetBox source of truth and the running lab across IP / AS / site / vendor / model / role / OS fields.</p></article>
         <article class="card reveal"><span class="ico" aria-hidden="true">🔍</span><h3>CLI RAG over 9,802 commands</h3><p>Stdlib-only BM25 retrieval over a multivendor CLI corpus returns vendor-specific matches with citation deep-links — no embeddings or model download.</p></article>
@@ -501,7 +501,7 @@
           <p class="dcap">How humans and AI agents drive the Flask core, which drives the two labs, the Anthropic API, telemetry, and SoT/verification.</p>
 <pre class="mermaid">flowchart TB
     operator(["NOC Operator - web UI and Telegram"]):::actor
-    agents(["Claude Code - via MCP, 64 tools"]):::actor
+    agents(["Claude Code - via MCP, 69 tools"]):::actor
     system{{"multivendor-ai-network-lab - Flask :5757 closed-loop ops"}}:::core
     labs["Two Labs - CLOS EVPN-VXLAN and FRR backbone"]:::infra
     anthropic["Anthropic API - claude-haiku-4-5"]:::ai
@@ -525,7 +525,7 @@
           <p class="dcap">The closed-loop, AI, and audit modules all layer on top of a single driver core resolving device → driver → transport.</p>
 <pre class="mermaid">flowchart TB
     subgraph FE["Front-ends"]
-        mcp["MCP Server - FastMCP, 64 tools"]:::edge
+        mcp["MCP Server - FastMCP, 69 tools"]:::edge
         tg["Telegram Bot - async httpx"]:::edge
         ui["Static Demo UI"]:::edge
     end
@@ -720,7 +720,7 @@
 <span class="ln">$</span> open http://localhost:5757/demo/index.html</code></pre>
       </div>
       <p class="note">This is a portfolio / demo lab, not a production system. The README documents a production-migration roadmap — move state out of memory into Redis/RQ, adopt TextFSM parsers, split the Flask blueprint, add a CI gate, and wire in a secrets manager.</p>
-      <p class="note" style="margin-top:12px">Want the full multi-vendor CLOS EVPN-VXLAN fabric (Nokia SRL · Arista cEOS · FRR), or to reproduce the <a href="portal.html">Fabric Portal</a> on your own machine? Follow the step-by-step <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener">Build Your Own Docker Lab</a> guide (macOS &amp; Linux), including the <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/CLOS_EVPN_MACOS_DEPLOY.md" target="_blank" rel="noopener"><code>--pid host</code> macOS recipe</a>.</p>
+      <p class="note" style="margin-top:12px">Want the full multi-vendor CLOS EVPN-VXLAN fabric (Nokia SRL · Arista cEOS · FRR), or to reproduce the <a href="portal.html">Lab Ops portal</a> on your own machine? Follow the step-by-step <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener">Build Your Own Docker Lab</a> guide (macOS &amp; Linux), including the <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/CLOS_EVPN_MACOS_DEPLOY.md" target="_blank" rel="noopener"><code>--pid host</code> macOS recipe</a>.</p>
     </div>
   </section>
 </main>
@@ -734,7 +734,7 @@
       </div>
       <nav class="links2" aria-label="Footer links">
         <a href="https://github.com/gesh75/multivendor-ai-network-lab" target="_blank" rel="noopener">↗ GitHub repo</a>
-        <a href="portal.html">Fabric Portal</a>
+        <a href="portal.html">Lab Ops portal</a>
         <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener">Build your own lab</a>
         <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
         <a href="#hero">↑ Top</a>

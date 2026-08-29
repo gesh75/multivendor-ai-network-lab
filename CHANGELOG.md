@@ -6,6 +6,15 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/); da
 
 ## [Unreleased] — 2026-06 → 2026-08
 
+### Docs (2026-08-29)
+- **Lab Ops portal on GitHub Pages** — `docs/portal.html` is now a static closed-loop
+  ops console (topology, fleet, 6-stage pipeline, Phase-6 auto-remediate, CLI RAG,
+  MCP, drift, GAIT). No `127.0.0.1:5757` poll, so the public site no longer renders
+  `0 / FABRIC ?`.
+- **Docs homepage KPIs** — chips ship the real numbers (26 devices, 69 MCP tools,
+  9,802 CLI, 55+ REST, 137/137 tests) instead of `0` placeholders.
+
+
 Documentation pass against code that landed after Phase 6. No behavior change
 in this section — see the linked commits for the runtime fixes.
 

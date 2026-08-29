@@ -1,909 +1,571 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GESH DC Fabric — Operations Portal</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GESH Lab Ops — Fabric Portal</title>
+<meta name="description" content="Interactive closed-loop NetOps portal for the 26-device multivendor AI lab. Honest inventory, risk-gated auto-remediation, RFC 6241 Health Gate. Static snapshot — no localhost backend.">
+<meta name="theme-color" content="#070b16">
+<link rel="icon" href="assets/hero.svg">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0e17;color:#c8d6e5;font-family:-apple-system,BlinkMacSystemFont,'SF Pro','Inter',sans-serif;min-height:100vh}
-a{color:#00d4ff;text-decoration:none}
-a:hover{text-decoration:underline;color:#5be8ff}
-
-/* Top nav */
-.topbar{background:#0d1520;border-bottom:1px solid #1a2840;padding:12px 32px;display:flex;align-items:center;gap:24px;position:sticky;top:0;z-index:100}
-.topbar .logo{font-size:20px;font-weight:700;color:#00d4ff;letter-spacing:1px}
-.topbar .logo span{color:#00e87a}
-.topbar nav{display:flex;gap:4px;flex:1}
-.topbar nav a{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#8899aa;transition:all .2s}
-.topbar nav a:hover,.topbar nav a.active{background:#1a2840;color:#fff;text-decoration:none}
-.topbar .status{font-size:12px;padding:6px 14px;border-radius:20px;font-weight:600}
-.topbar .status.up{background:#00e87a22;color:#00e87a;border:1px solid #00e87a44}
-.topbar .status.down{background:#ff3c5a22;color:#ff3c5a;border:1px solid #ff3c5a44}
-
-/* Sections */
-.section{display:none;padding:32px;max-width:1400px;margin:0 auto}
-.section.active{display:block}
-.section h2{font-size:22px;color:#fff;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #1a2840}
-
-/* Cards grid */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:32px}
-.card{background:#0d1520;border:1px solid #1a2840;border-radius:12px;padding:20px;transition:border-color .2s}
-.card:hover{border-color:#00d4ff44}
-.card h3{font-size:15px;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.card p{font-size:13px;color:#8899aa;line-height:1.5}
-.card .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px}
-.tag.srl{background:#004aad22;color:#4a9eff;border:1px solid #004aad44}
-.tag.ceos{background:#00854622;color:#00c46a;border:1px solid #00854644}
-.tag.frr{background:#85450022;color:#ffaa33;border:1px solid #85450044}
-.tag.vlan10{background:#00d4ff22;color:#00d4ff}
-.tag.vlan20{background:#f0b42922;color:#f0b429}
-.tag.vlan30{background:#e84aff22;color:#e84aff}
-
-/* Topology diagram */
-.topo{background:#0d1520;border:1px solid #1a2840;border-radius:12px;padding:32px;margin-bottom:32px;overflow-x:auto}
-.topo pre{font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;line-height:1.6;color:#c8d6e5;white-space:pre}
-.topo .spine{color:#ff6b6b;font-weight:700}
-.topo .leaf{color:#00e87a;font-weight:700}
-.topo .host{color:#00d4ff}
-.topo .link{color:#4a5568}
-
-/* Stats row */
-.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:32px}
-.stat{background:#0d1520;border:1px solid #1a2840;border-radius:10px;padding:16px;text-align:center}
-.stat .val{font-size:28px;font-weight:700;color:#00d4ff}
-.stat .label{font-size:11px;color:#8899aa;margin-top:4px;text-transform:uppercase;letter-spacing:1px}
-
-/* Config viewer */
-.config-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.config-item{background:#0d1520;border:1px solid #1a2840;border-radius:10px;padding:16px;cursor:pointer;transition:all .2s}
-.config-item:hover{border-color:#00d4ff;transform:translateY(-2px)}
-.config-item h4{font-size:14px;color:#fff;margin-bottom:4px}
-.config-item .meta{font-size:12px;color:#8899aa}
-
-/* Table */
-table{width:100%;border-collapse:collapse;margin-bottom:24px}
-th{text-align:left;padding:10px 14px;background:#0d1520;color:#8899aa;font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #1a2840}
-td{padding:10px 14px;border-bottom:1px solid #1a284066;font-size:13px}
-tr:hover td{background:#1a284033}
-.ok{color:#00e87a;font-weight:600}
-.fail{color:#ff3c5a;font-weight:600}
-
-/* Matrix */
-.matrix{overflow-x:auto}
-.matrix table{font-size:12px;text-align:center}
-.matrix th,.matrix td{padding:8px 12px;min-width:60px}
-.matrix .cell-ok{background:#00e87a15;color:#00e87a}
-.matrix .cell-self{background:#1a2840;color:#4a5568}
-
-/* Iframe embed */
-.embed{width:100%;height:80vh;border:1px solid #1a2840;border-radius:12px;background:#050a12}
-
-/* Commands */
-.cmd{background:#0a0e17;border:1px solid #1a2840;border-radius:8px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#00e87a;margin-bottom:10px;position:relative}
-.cmd .label{color:#8899aa;font-size:11px;margin-bottom:4px;display:block}
-.cmd code{color:#00d4ff}
-
-/* Mermaid diagrams */
-.diagram-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
-.diagram-tabs button{background:#0d1520;border:1px solid #1a2840;color:#8899aa;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
-.diagram-tabs button:hover{border-color:#00d4ff44;color:#fff}
-.diagram-tabs button.active{background:#00d4ff22;color:#00d4ff;border-color:#00d4ff}
-.diagram-panel{display:none;background:#0d1520;border:1px solid #1a2840;border-radius:12px;padding:24px;overflow-x:auto}
-.diagram-panel.active{display:block}
-.diagram-panel .mermaid{background:transparent;text-align:center}
-.diagram-desc{font-size:13px;color:#8899aa;margin-bottom:16px;line-height:1.6}
-.diagram-desc b{color:#c8d6e5}
+  :root{
+    --bg0:#070b16; --bg1:#0b1020; --bg2:#131a2e;
+    --cyan:#5eead4; --blue:#60a5fa; --violet:#a78bfa; --pink:#f472b6; --teal:#14b8a6;
+    --ink:#e6ecff; --muted:#9aa7c7; --dim:#6b779b; --fg:#e6ecff;
+    --card:rgba(255,255,255,.045); --cardb:rgba(255,255,255,.10);
+    --line:rgba(255,255,255,.10); --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg0);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--cyan);text-decoration:none}
+  a:hover{text-decoration:underline}
+  button{font-family:inherit;cursor:pointer}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  body{
+    background:
+      radial-gradient(900px 540px at 8% 4%, rgba(94,234,212,.10), transparent 58%),
+      radial-gradient(1100px 620px at 78% -8%, rgba(167,139,250,.12), transparent 60%),
+      linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 60%, var(--bg0) 100%);
+    background-attachment:fixed;
+  }
+  .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+  .side{
+    border-right:1px solid var(--line);background:rgba(8,12,22,.72);backdrop-filter:blur(14px);
+    padding:18px 12px 28px;position:sticky;top:0;height:100vh;overflow:auto;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 16px;font-weight:800}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--cyan),var(--violet));box-shadow:0 0 12px var(--cyan)}
+  .grad{background:linear-gradient(100deg,var(--cyan),var(--blue) 48%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .nav-g{margin:14px 6px 6px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .nav a{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;color:var(--muted);
+    font-size:13.5px;font-weight:600;
+  }
+  .nav a:hover{background:rgba(255,255,255,.04);color:var(--ink);text-decoration:none}
+  .nav a.on{background:rgba(96,165,250,.12);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(96,165,250,.28)}
+  .badge{
+    margin:14px 8px 0;padding:8px 10px;border-radius:999px;border:1px solid rgba(52,211,153,.35);
+    background:rgba(52,211,153,.10);color:var(--ok);font-size:11px;font-weight:700;text-align:center;
+  }
+  .main{padding:28px 32px 60px;max-width:1280px}
+  .top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);font-weight:700}
+  h1{margin:6px 0 8px;font-size:clamp(22px,3vw,34px);letter-spacing:-.6px}
+  .lede{color:var(--muted);max-width:720px;font-size:14.5px;line-height:1.6}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .btn{
+    border:1px solid var(--cardb);background:var(--card);color:var(--ink);border-radius:11px;
+    padding:9px 13px;font-size:13px;font-weight:700;
+  }
+  .btn:hover{border-color:var(--cyan)}
+  .btn.pri{color:#05121f;background:linear-gradient(100deg,var(--cyan),var(--blue) 60%,var(--violet));border:0}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:22px 0}
+  .kpi{background:var(--card);border:1px solid var(--cardb);border-radius:14px;padding:12px 14px}
+  .kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums;background:linear-gradient(100deg,var(--cyan),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .kpi span{display:block;margin-top:2px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .kpi.warn b{color:var(--warn);background:none;-webkit-background-clip:unset}
+  .panel{background:var(--card);border:1px solid var(--cardb);border-radius:16px;padding:16px;margin:14px 0}
+  .panel h2{margin:0 0 10px;font-size:15px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--cyan);padding:8px 6px;border-bottom:1px solid var(--line)}
+  td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+  tr:hover td{background:rgba(96,165,250,.05)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--line)}
+  .up{color:var(--ok);border-color:rgba(52,211,153,.35)}
+  .deg{color:var(--warn);border-color:rgba(251,191,36,.35)}
+  .dn{color:var(--bad);border-color:rgba(248,113,113,.35)}
+  .low{color:var(--ok)} .med{color:var(--blue)} .high{color:var(--warn)} .crit{color:var(--bad)}
+  .grid2{display:grid;grid-template-columns:1.4fr .9fr;gap:14px}
+  .topo{width:100%;height:auto;background:#070c18;border:1px solid var(--cardb);border-radius:14px}
+  .node{cursor:pointer}
+  input,select,textarea{
+    background:#070c18;border:1px solid var(--cardb);color:var(--ink);border-radius:10px;
+    padding:8px 10px;font:inherit;font-size:13px;
+  }
+  .log{font-family:var(--mono);font-size:12px;line-height:1.55;color:#cdd7f4;white-space:pre-wrap}
+  .stage{display:flex;gap:8px;flex-wrap:wrap}
+  .st{flex:1;min-width:90px;padding:10px;border-radius:12px;border:1px solid var(--line);background:rgba(8,12,22,.5);font-size:12px}
+  .st.on{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(94,234,212,.3)}
+  .st.ok{border-color:var(--ok)} .st.bad{border-color:var(--bad)}
+  .hide{display:none}
+  .menu{display:none}
+  .note{font-size:13px;color:var(--muted);border-left:3px solid var(--violet);padding:6px 12px;background:rgba(167,139,250,.06);border-radius:0 8px 8px 0}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+  .card{border:1px solid var(--cardb);background:rgba(8,12,22,.45);border-radius:12px;padding:12px}
+  .card h3{margin:0 0 6px;font-size:14px}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr}
+    .side{position:fixed;inset:0 auto 0 0;width:min(82vw,280px);z-index:40;transform:translateX(-110%);transition:transform .2s}
+    .side.open{transform:none}
+    .menu{display:inline-flex}
+    .main{padding:18px 16px 48px}
+    .grid2{grid-template-columns:1fr}
+  }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 </head>
 <body>
-
-<div class="topbar">
-  <div class="logo">GESH<span>DC</span></div>
-  <nav>
-    <a href="#" class="active" onclick="show('overview')">Overview</a>
-    <a href="#" onclick="show('topology')">Topology</a>
-    <a href="#" onclick="show('diagrams')">Diagrams</a>
-    <a href="#" onclick="show('diagram')">Live Map</a>
-    <a href="#" onclick="show('configs')">Configurations</a>
-    <a href="#" onclick="show('connectivity')">Connectivity</a>
-    <a href="#" onclick="show('drivers')">Driver Layer</a>
-    <a href="#" onclick="show('operations')">Operations</a>
-    <a href="#" onclick="show('docs')">Documentation</a>
-  </nav>
-  <span class="status up" id="fabric-status">FABRIC UP</span>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand"><span class="dot"></span><span class="grad">GESH Lab Ops</span></div>
+    <nav class="nav" id="nav">
+      <div class="nav-g">Ops</div>
+      <a href="#command" data-view="command" class="on">Command</a>
+      <a href="#topology" data-view="topology">Topology</a>
+      <a href="#fleet" data-view="fleet">Fleet</a>
+      <a href="#trace" data-view="trace">Path trace</a>
+      <div class="nav-g">Closed loop</div>
+      <a href="#pipeline" data-view="pipeline">Pipeline</a>
+      <a href="#remediate" data-view="remediate">Auto-remediate</a>
+      <div class="nav-g">Intelligence</div>
+      <a href="#rag" data-view="rag">CLI RAG</a>
+      <a href="#mcp" data-view="mcp">MCP tools</a>
+      <a href="#translate" data-view="translate">Translator</a>
+      <a href="#cve" data-view="cve">CVE</a>
+      <div class="nav-g">Governance</div>
+      <a href="#drift" data-view="drift">NetBox drift</a>
+      <a href="#gait" data-view="gait">GAIT audit</a>
+      <a href="#docs" data-view="docs">Docs</a>
+    </nav>
+    <div class="badge" id="fab">SNAPSHOT · 19 live net · 41/41 clab BGP</div>
+    <p style="margin:12px 8px 0;font-size:11px;color:var(--dim);line-height:1.45">Public Pages cannot reach Flask :5757. This portal ships the real inventory as a client-side lab. Run the repo locally for live docker-exec.</p>
+  </aside>
+  <main class="main">
+    <button class="btn menu" id="menuBtn" type="button">☰ Menu</button>
+    <div id="view"></div>
+  </main>
 </div>
-
-<div style="max-width:1100px;margin:14px auto 0;padding:12px 18px;border:1px solid #1a2840;border-left:3px solid #00d4ff;border-radius:8px;background:#0a0e17;color:#8899aa;font-size:13px;line-height:1.55">
-  <b style="color:#c8d6e5">Static documentation snapshot of a live operations portal.</b> The <span style="color:#00d4ff">FABRIC</span> badge above reads a <b>local</b> backend at <code>127.0.0.1:5757</code>, so on the public web it shows <b>FABRIC&nbsp;?</b> &mdash; that is expected (there is no public backend). Device configs, topology and diagrams below are all live. Want the real running fabric on your own machine? <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener" style="color:#00e87a;font-weight:600">↳ Build your own Docker lab</a> (step-by-step) &nbsp;&middot;&nbsp; <a href="https://github.com/gesh75/multivendor-ai-network-lab" target="_blank" rel="noopener" style="color:#00d4ff">repo ↗</a>
-</div>
-
-<!-- ═══════════ OVERVIEW ═══════════ -->
-<div class="section active" id="sec-overview">
-  <h2>Multi-Vendor Dual-Stack EVPN-VXLAN Fabric</h2>
-
-  <div class="stats">
-    <div class="stat"><div class="val">15</div><div class="label">Total Nodes</div></div>
-    <div class="stat"><div class="val">3</div><div class="label">Spine RRs</div></div>
-    <div class="stat"><div class="val">6</div><div class="label">Leaf VTEPs</div></div>
-    <div class="stat"><div class="val">6</div><div class="label">Dual-Homed Hosts</div></div>
-    <div class="stat"><div class="val">3</div><div class="label">Vendors</div></div>
-    <div class="stat"><div class="val">36+18</div><div class="label">BGP IPv4+IPv6</div></div>
-    <div class="stat"><div class="val">IPv6</div><div class="label">Dual-Stack</div></div>
-    <div class="stat"><div class="val">3</div><div class="label">VLANs / VNIs</div></div>
-    <div class="stat"><div class="val">30/30</div><div class="label">Ping Matrix</div></div>
-  </div>
-
-  <div class="cards">
-    <div class="card">
-      <h3><span class="tag srl">SRL</span> Nokia SR Linux</h3>
-      <p>spine1 (RR), leaf2 (VTEP rack-1), leaf5 (VTEP rack-3)<br>
-      SR Linux v24.10.3 &mdash; Full EVPN-MH with ESI-LAG, IRB anycast gateway, symmetric IRB routing via ip-vrf</p>
-    </div>
-    <div class="card">
-      <h3><span class="tag ceos">cEOS</span> Arista cEOS</h3>
-      <p>spine2 (RR), leaf1 (VTEP rack-1), leaf4 (VTEP rack-2)<br>
-      cEOS 4.33.1F &mdash; EVPN multihoming with Port-Channel ESI, virtual-router anycast MAC, VXLAN L3 VNI</p>
-    </div>
-    <div class="card">
-      <h3><span class="tag frr">FRR</span> FRRouting</h3>
-      <p>spine3 (RR), leaf3 (VTEP rack-2), leaf6 (VTEP rack-3)<br>
-      FRR 8.4 &mdash; EVPN-MH via es-id/es-sys-mac, Linux bridge VXLAN. L3 VNI limited (no kernel VRF in container)</p>
-    </div>
-  </div>
-
-  <h2>Architecture Highlights</h2>
-  <div class="cards">
-    <div class="card">
-      <h3>eBGP Underlay</h3>
-      <p>Pure eBGP underlay (RFC 7938). Each leaf has unique ASN (65001-65006), spines share AS 65100. Loopbacks redistributed via route-map. No OSPF/IS-IS IGP.</p>
-    </div>
-    <div class="card">
-      <h3>eBGP EVPN Overlay</h3>
-      <p>EVPN overlay runs as eBGP with multihop between leaf loopbacks and spine route-reflectors. Per-leaf AS numbers preserved &mdash; no AS swap tricks needed.</p>
-    </div>
-    <div class="card">
-      <h3>ESI-LAG Multihoming</h3>
-      <p>Every host dual-homed to a leaf pair via LACP bond0. ESI (Ethernet Segment Identifier) ensures active-active forwarding with sub-second failover via EVPN Type-1/Type-4.</p>
-    </div>
-    <div class="card">
-      <h3>IRB Anycast Gateway</h3>
-      <p>Symmetric IRB with shared anycast MAC (00:00:5E:00:53:01). L3 VNI 50001 in TENANT-A VRF. All hosts see the same gateway MAC regardless of which leaf they hit.</p>
-    </div>
-    <div class="card">
-      <h3>SNMP Monitoring</h3>
-      <p>All 9 network nodes send SNMP traps to 172.20.20.1:1162. Community: GESH-DC1-RO. SRL/cEOS use native SNMP; FRR uses external snmpd + AgentX.</p>
-    </div>
-    <div class="card">
-      <h3>Inter-VLAN Routing</h3>
-      <p>30/30 host-to-host paths verified. VLAN 10 (10.10.10.0/24), VLAN 20 (10.10.20.0/24), VLAN 30 (10.10.30.0/24). Full mesh via symmetric IRB over VXLAN.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ TOPOLOGY ═══════════ -->
-<div class="section" id="sec-topology">
-  <h2>Fabric Topology</h2>
-
-  <div class="topo"><pre>
-                        ┌─────────────────────────────────────────────────────────┐
-                        │                    SPINE LAYER (AS 65100)                │
-                        │                   EVPN Route Reflectors                  │
-                        │                                                         │
-                        │   <span class="spine">spine1</span>              <span class="spine">spine2</span>              <span class="spine">spine3</span>     │
-                        │   Nokia SRL           Arista cEOS          FRR          │
-                        │   10.255.0.1          10.255.0.2           10.255.0.3   │
-                        │   172.20.20.11        172.20.20.12         172.20.20.13 │
-                        └───────┬──────────────────┬─────────────────┬────────────┘
-                    ┌───────────┼──────────────────┼─────────────────┼───────────┐
-         ┌──────────┼───────────┼──────┬───────────┼──────┬──────────┼───────────┼──────────┐
-         │          │           │      │           │      │          │           │          │
-   ┌─────┴────┐ ┌───┴─────┐ ┌──┴──────┴──┐ ┌─────┴────┐ ┌┴─────────┴─┐ ┌──────┴────────┐ │
-   │  <span class="leaf">leaf1</span>   │ │ <span class="leaf">leaf2</span>   │ │   <span class="leaf">leaf3</span>   │ │  <span class="leaf">leaf4</span>   │ │   <span class="leaf">leaf5</span>    │ │    <span class="leaf">leaf6</span>     │ │
-   │  cEOS    │ │ SRL     │ │   FRR     │ │  cEOS    │ │   SRL      │ │    FRR       │ │
-   │  AS65001 │ │ AS65002 │ │  AS65003  │ │  AS65004 │ │  AS65005   │ │   AS65006    │ │
-   │ VNI10010 │ │VNI10010 │ │ VNI10020  │ │VNI10020  │ │ VNI10030   │ │  VNI10030    │ │
-   └──┬───┬───┘ └──┬───┬──┘ └──┬────┬──┘ └──┬───┬───┘ └──┬────┬───┘ └──┬─────┬───┘ │
-      │   │        │   │       │    │       │   │        │    │        │     │      │
-      │   └────────┤   ├───────┘    └───────┤   ├────────┘    └────────┤     │      │
-      │    ESI-LAG │   │ ESI-LAG     ESI-LAG│   │  ESI-LAG     ESI-LAG│     │      │
-   ┌──┴──┐     ┌───┴───┴──┐     ┌───┴───┴──┐     ┌───┴──┐      ┌────┴─────┴──┐   │
-   │<span class="host">host1</span>│     │  <span class="host">host2</span>   │     │  <span class="host">host3</span>  │     │<span class="host">host4</span>│      │  <span class="host">host5</span>     │   │
-   │bond0│     │  bond0   │     │  bond0   │     │bond0 │      │  bond0      │   │
-   │LACP │     │  LACP    │     │  LACP    │     │LACP  │      │  LACP       │   │
-   │.10.1│     │  .10.2   │     │  .20.1   │     │.20.2 │      │  .30.1      │   │
-   └─────┘     └──────────┘     └──────────┘     └──────┘      └─────────────┘   │
-                                                                                  │
-   ┌──────────────────────────────────────────────────────────────────────────────┘
-   │  <span class="host">host6</span> — bond0 active-backup, primary=eth2 (leaf5 SRL) for L3 VNI routing
-   │  10.10.30.2/24
-   └──────────────────────────────────────────────────────────────────────────────
-  </pre></div>
-
-  <h2>IP Addressing</h2>
-  <table>
-    <tr><th>Device</th><th>Role</th><th>Vendor</th><th>ASN</th><th>Loopback</th><th>VTEP</th><th>Mgmt</th></tr>
-    <tr><td>spine1</td><td>Spine RR</td><td><span class="tag srl">SRL</span></td><td>65100</td><td>10.255.0.1</td><td>&mdash;</td><td>172.20.20.11</td></tr>
-    <tr><td>spine2</td><td>Spine RR</td><td><span class="tag ceos">cEOS</span></td><td>65100</td><td>10.255.0.2</td><td>&mdash;</td><td>172.20.20.12</td></tr>
-    <tr><td>spine3</td><td>Spine RR</td><td><span class="tag frr">FRR</span></td><td>65100</td><td>10.255.0.3</td><td>&mdash;</td><td>172.20.20.13</td></tr>
-    <tr><td>leaf1</td><td>Leaf VTEP</td><td><span class="tag ceos">cEOS</span></td><td>65001</td><td>10.255.1.1</td><td>10.255.1.1</td><td>172.20.20.21</td></tr>
-    <tr><td>leaf2</td><td>Leaf VTEP</td><td><span class="tag srl">SRL</span></td><td>65002</td><td>10.255.1.2</td><td>10.255.100.2</td><td>172.20.20.22</td></tr>
-    <tr><td>leaf3</td><td>Leaf VTEP</td><td><span class="tag frr">FRR</span></td><td>65003</td><td>10.255.1.3</td><td>10.255.100.3</td><td>172.20.20.23</td></tr>
-    <tr><td>leaf4</td><td>Leaf VTEP</td><td><span class="tag ceos">cEOS</span></td><td>65004</td><td>10.255.1.4</td><td>10.255.1.4</td><td>172.20.20.24</td></tr>
-    <tr><td>leaf5</td><td>Leaf VTEP</td><td><span class="tag srl">SRL</span></td><td>65005</td><td>10.255.1.5</td><td>10.255.100.5</td><td>172.20.20.25</td></tr>
-    <tr><td>leaf6</td><td>Leaf VTEP</td><td><span class="tag frr">FRR</span></td><td>65006</td><td>10.255.1.6</td><td>10.255.100.6</td><td>172.20.20.26</td></tr>
-  </table>
-
-  <h2>IPv6 Addressing (Dual-Stack)</h2>
-  <p style="font-size:13px;color:#8899aa;margin-bottom:12px">Loopbacks: <code>fd00:dc1::X/128</code> &mdash; P2P links: <code>fd00:dc1:SPINE:LEAF::/127</code> (::0 = spine side, ::1 = leaf side)</p>
-  <table>
-    <tr><th>Device</th><th>IPv6 Loopback</th><th>P2P to spine1</th><th>P2P to spine2</th><th>P2P to spine3</th></tr>
-    <tr><td>spine1</td><td>fd00:dc1::1/128</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>spine2</td><td>fd00:dc1::2/128</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>spine3</td><td>fd00:dc1::3/128</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-    <tr><td>leaf1</td><td>fd00:dc1::11/128</td><td>fd00:dc1:1:1::1</td><td>fd00:dc1:2:1::1</td><td>fd00:dc1:3:1::1</td></tr>
-    <tr><td>leaf2</td><td>fd00:dc1::12/128</td><td>fd00:dc1:1:2::1</td><td>fd00:dc1:2:2::1</td><td>fd00:dc1:3:2::1</td></tr>
-    <tr><td>leaf3</td><td>fd00:dc1::13/128</td><td>fd00:dc1:1:3::1</td><td>fd00:dc1:2:3::1</td><td>fd00:dc1:3:3::1</td></tr>
-    <tr><td>leaf4</td><td>fd00:dc1::14/128</td><td>fd00:dc1:1:4::1</td><td>fd00:dc1:2:4::1</td><td>fd00:dc1:3:4::1</td></tr>
-    <tr><td>leaf5</td><td>fd00:dc1::15/128</td><td>fd00:dc1:1:5::1</td><td>fd00:dc1:2:5::1</td><td>fd00:dc1:3:5::1</td></tr>
-    <tr><td>leaf6</td><td>fd00:dc1::16/128</td><td>fd00:dc1:1:6::1</td><td>fd00:dc1:2:6::1</td><td>fd00:dc1:3:6::1</td></tr>
-  </table>
-
-  <h2>VLAN / VNI / Subnet Mapping</h2>
-  <table>
-    <tr><th>VLAN</th><th>L2 VNI</th><th>Subnet</th><th>Anycast GW</th><th>MAC</th><th>Leaf Pair</th><th>Hosts</th></tr>
-    <tr><td><span class="tag vlan10">10</span></td><td>10010</td><td>10.10.10.0/24</td><td>10.10.10.254</td><td>00:00:5E:00:53:01</td><td>leaf1 (cEOS) + leaf2 (SRL)</td><td>host1, host2</td></tr>
-    <tr><td><span class="tag vlan20">20</span></td><td>10020</td><td>10.10.20.0/24</td><td>10.10.20.254</td><td>00:00:5E:00:53:01</td><td>leaf3 (FRR) + leaf4 (cEOS)</td><td>host3, host4</td></tr>
-    <tr><td><span class="tag vlan30">30</span></td><td>10030</td><td>10.10.30.0/24</td><td>10.10.30.254</td><td>00:00:5E:00:53:01</td><td>leaf5 (SRL) + leaf6 (FRR)</td><td>host5, host6</td></tr>
-    <tr><td colspan="2">L3 VNI</td><td>50001</td><td colspan="4">TENANT-A VRF &mdash; symmetric IRB inter-VLAN routing</td></tr>
-  </table>
-
-  <h2>ESI-LAG Segments</h2>
-  <table>
-    <tr><th>Host</th><th>Bond Mode</th><th>Primary Leaf</th><th>Partner Leaf</th><th>ESI</th></tr>
-    <tr><td>host1</td><td>802.3ad LACP</td><td>leaf1 (cEOS)</td><td>leaf2 (SRL)</td><td>00:11:11:11:11:11:11:11:11:11</td></tr>
-    <tr><td>host2</td><td>802.3ad LACP</td><td>leaf2 (SRL)</td><td>leaf1 (cEOS)</td><td>00:11:11:11:11:11:11:11:22:22</td></tr>
-    <tr><td>host3</td><td>802.3ad LACP</td><td>leaf3 (FRR)</td><td>leaf4 (cEOS)</td><td>00:22:22:22:22:22:22:22:11:11</td></tr>
-    <tr><td>host4</td><td>802.3ad LACP</td><td>leaf4 (cEOS)</td><td>leaf3 (FRR)</td><td>00:22:22:22:22:22:22:22:22:22</td></tr>
-    <tr><td>host5</td><td>802.3ad LACP</td><td>leaf5 (SRL)</td><td>leaf6 (FRR)</td><td>00:33:33:33:33:33:33:33:11:11</td></tr>
-    <tr><td>host6</td><td>active-backup</td><td>leaf5 (SRL) *</td><td>leaf6 (FRR)</td><td>00:33:33:33:33:33:33:33:22:22</td></tr>
-  </table>
-  <p style="font-size:12px;color:#8899aa;margin-top:-16px">* host6 uses active-backup with leaf5 (SRL) as primary because leaf6 FRR lacks kernel VRF for L3 VNI decapsulation</p>
-</div>
-
-<!-- ═══════════ DIAGRAMS (Mermaid) ═══════════ -->
-<div class="section" id="sec-diagrams">
-  <h2>Network Diagrams</h2>
-  <div class="diagram-tabs">
-    <button class="active" onclick="showDiagram('d-l1', this)">L1 · Physical</button>
-    <button onclick="showDiagram('d-l3', this)">L3 · Underlay (IP)</button>
-    <button onclick="showDiagram('d-bgp', this)">BGP Sessions</button>
-    <button onclick="showDiagram('d-evpn', this)">EVPN / VXLAN</button>
-    <button onclick="showDiagram('d-logical', this)">Logical · VLAN/VRF</button>
-    <button onclick="showDiagram('d-dcn', this)">DCN Backbone</button>
-  </div>
-
-  <!-- L1 PHYSICAL -->
-  <div class="diagram-panel active" id="d-l1">
-    <div class="diagram-desc">
-      <b>Layer 1 — Physical cabling.</b> Every spine-leaf veth link with interface names on both ends.
-      All links 9194 MTU (cEOS max). Spine ports e1-1..6 / et1..6 / eth3..8; leaf uplinks et1-3 / e1-1..3 / eth1-3 — except leaf4 (cEOS), whose spine uplinks are et2/et3/et4 (et1 unused, et5/et6 = host legs).
-    </div>
-    <pre class="mermaid">
-flowchart TB
-  subgraph SPINES["SPINE LAYER · AS 65100"]
-    S1["spine1 · Nokia SRL<br/>e1-1..e1-6"]
-    S2["spine2 · Arista cEOS<br/>et1..et6"]
-    S3["spine3 · FRR<br/>eth3..eth8"]
-  end
-  subgraph LEAFS["LEAF LAYER · VTEPs"]
-    L1["leaf1 cEOS<br/>et1/et2/et3"]
-    L2["leaf2 SRL<br/>e1-1/e1-2/e1-3"]
-    L3["leaf3 FRR<br/>eth1/eth2/eth3"]
-    L4["leaf4 cEOS<br/>et2/et3/et4"]
-    L5["leaf5 SRL<br/>e1-1/e1-2/e1-3"]
-    L6["leaf6 FRR<br/>eth1/eth2/eth3"]
-  end
-  S1 ---|e1-1 : et1| L1
-  S1 ---|e1-2 : e1-1| L2
-  S1 ---|e1-3 : eth1| L3
-  S1 ---|e1-4 : et2| L4
-  S1 ---|e1-5 : e1-1| L5
-  S1 ---|e1-6 : eth1| L6
-  S2 ---|et1 : et2| L1
-  S2 ---|et2 : e1-2| L2
-  S2 ---|et3 : eth2| L3
-  S2 ---|et4 : et3| L4
-  S2 ---|et5 : e1-2| L5
-  S2 ---|et6 : eth2| L6
-  S3 ---|eth3 : et3| L1
-  S3 ---|eth4 : e1-3| L2
-  S3 ---|eth5 : eth3| L3
-  S3 ---|eth6 : et4| L4
-  S3 ---|eth7 : e1-3| L5
-  S3 ---|eth8 : eth3| L6
-  L1 -.->|et4/et5 LACP| H12["host1+host2<br/>bond0 (eth1+eth2)"]
-  L2 -.->|e1-4/e1-5 LACP| H12
-  L3 -.->|eth4/eth5 LACP| H34["host3+host4<br/>bond0"]
-  L4 -.->|et5/et6 LACP| H34
-  L5 -.->|e1-4/e1-5 LACP| H56["host5+host6<br/>bond0"]
-  L6 -.->|eth4/eth5| H56
-    </pre>
-  </div>
-
-  <!-- L3 UNDERLAY -->
-  <div class="diagram-panel" id="d-l3">
-    <div class="diagram-desc">
-      <b>Layer 3 — eBGP underlay addressing.</b> P2P /31 IPv4 + /127 IPv6 (fd00:dc1:spine:leaf::/127).
-      Loopbacks /32 + /128. Each leaf has a unique ASN; spines share AS 65100. Dual-stack.
-    </div>
-    <pre class="mermaid">
-flowchart LR
-  S1["spine1 SRL · AS65100<br/>lo 10.255.0.1 · fd00:dc1::1"]
-  L1["leaf1 cEOS · AS65001<br/>lo 10.255.1.1 · fd00:dc1::11"]
-  L2["leaf2 SRL · AS65002<br/>lo 10.255.1.2 · fd00:dc1::12"]
-  L3["leaf3 FRR · AS65003<br/>lo 10.255.1.3 · fd00:dc1::13"]
-  S1 ---|"10.0.1.0/31 · fd00:dc1:1:1::/127"| L1
-  S1 ---|"10.0.1.2/31 · fd00:dc1:1:2::/127"| L2
-  S1 ---|"10.0.1.4/31 · fd00:dc1:1:3::/127"| L3
-  S2["spine2 cEOS · AS65100<br/>lo 10.255.0.2 · fd00:dc1::2"]
-  S2 ---|"10.0.2.0/31 · fd00:dc1:2:1::/127"| L1
-  S2 ---|"10.0.2.2/31 · fd00:dc1:2:2::/127"| L2
-  S2 ---|"10.0.2.4/31 · fd00:dc1:2:3::/127"| L3
-  S3["spine3 FRR · AS65100<br/>lo 10.255.0.3 · fd00:dc1::3"]
-  S3 ---|"10.0.3.0/31 · fd00:dc1:3:1::/127"| L1
-  S3 ---|"10.0.3.2/31 · fd00:dc1:3:2::/127"| L2
-  S3 ---|"10.0.3.4/31 · fd00:dc1:3:3::/127"| L3
-    </pre>
-    <div class="diagram-desc" style="margin-top:12px">
-      <b>Leaf P2P octets:</b> spine→leafN uses <code>10.0.{spine}.{(leaf-1)*2}/31</code> (spine side, even) ↔ <code>+1</code> (leaf side, odd).
-      leaf4–6 follow the same pattern on 10.0.{1,2,3}.{6,8,10}.
-    </div>
-  </div>
-
-  <!-- BGP -->
-  <div class="diagram-panel" id="d-bgp">
-    <div class="diagram-desc">
-      <b>BGP control plane.</b> Solid = eBGP underlay (IPv4/IPv6 unicast, per-leaf ASN ↔ AS65100).
-      Dashed = eBGP EVPN overlay (leaf loopback ↔ spine loopback, multihop, spines are route-reflector-clients/transit).
-    </div>
-    <pre class="mermaid">
-flowchart TB
-  S1(["spine1 RR<br/>AS65100"])
-  S2(["spine2 RR<br/>AS65100"])
-  S3(["spine3 RR<br/>AS65100"])
-  L1["leaf1 AS65001"]
-  L2["leaf2 AS65002"]
-  L3["leaf3 AS65003"]
-  L4["leaf4 AS65004"]
-  L5["leaf5 AS65005"]
-  L6["leaf6 AS65006"]
-  S1 --- L1 & L2 & L3 & L4 & L5 & L6
-  S2 --- L1 & L2 & L3 & L4 & L5 & L6
-  S3 --- L1 & L2 & L3 & L4 & L5 & L6
-  S1 -.EVPN.- L1 & L2 & L3 & L4 & L5 & L6
-  S2 -.EVPN.- L1 & L2 & L3 & L4 & L5 & L6
-  S3 -.EVPN.- L1 & L2 & L3 & L4 & L5 & L6
-    </pre>
-    <div class="diagram-desc" style="margin-top:12px">
-      18 underlay + 18 EVPN overlay sessions. A session reaches Established once OPEN/KEEPALIVE are negotiated. BFD 100ms×3 = 300ms failover on FRR/SRL.
-    </div>
-  </div>
-
-  <!-- EVPN / VXLAN -->
-  <div class="diagram-panel" id="d-evpn">
-    <div class="diagram-desc">
-      <b>EVPN-VXLAN data plane.</b> L2 VNIs bridge each VLAN across the fabric; L3 VNI 50001 (TENANT-A VRF)
-      does symmetric IRB inter-VLAN routing. Anycast gateway MAC 00:00:5E:00:53:01 shared on all leafs.
-    </div>
-    <pre class="mermaid">
-flowchart TB
-  subgraph VNI10["VLAN 10 · VNI 10010 · 10.10.10.0/24"]
-    direction LR
-    H1["host1<br/>10.10.10.1"] --- P1["leaf1+leaf2<br/>ESI 00:11:..:11:11"]
-    H2["host2<br/>10.10.10.2"] --- P1
-  end
-  subgraph VNI20["VLAN 20 · VNI 10020 · 10.10.20.0/24"]
-    direction LR
-    H3["host3<br/>10.10.20.1"] --- P2["leaf3+leaf4<br/>ESI 00:22:..:22:22"]
-    H4["host4<br/>10.10.20.2"] --- P2
-  end
-  subgraph VNI30["VLAN 30 · VNI 10030 · 10.10.30.0/24"]
-    direction LR
-    H5["host5<br/>10.10.30.1"] --- P3["leaf5+leaf6<br/>ESI 00:33:..:33:33"]
-    H6["host6<br/>10.10.30.2"] --- P3
-  end
-  P1 --- VRF["TENANT-A VRF<br/>L3 VNI 50001<br/>anycast GW 00:00:5E:00:53:01"]
-  P2 --- VRF
-  P3 --- VRF
-    </pre>
-    <div class="diagram-desc" style="margin-top:12px">
-      Intra-VLAN = L2 VXLAN bridging. Inter-VLAN = ingress leaf routes into L3 VNI 50001, egress leaf
-      decaps and delivers locally (symmetric IRB). 30/30 host pings verified.
-    </div>
-  </div>
-
-  <!-- LOGICAL -->
-  <div class="diagram-panel" id="d-logical">
-    <div class="diagram-desc">
-      <b>Logical view — racks, VLANs, gateways.</b> 3 racks, each a dual-homed leaf pair serving one VLAN.
-      All hosts share the anycast default gateway .254 in their subnet.
-    </div>
-    <pre class="mermaid">
-flowchart TB
-  subgraph R1["RACK 1 · VLAN 10"]
-    R1GW["GW 10.10.10.254<br/>leaf1(cEOS)+leaf2(SRL)"]
-    R1H["host1 .1 · host2 .2"]
-    R1H --- R1GW
-  end
-  subgraph R2["RACK 2 · VLAN 20"]
-    R2GW["GW 10.10.20.254<br/>leaf3(FRR)+leaf4(cEOS)"]
-    R2H["host3 .1 · host4 .2"]
-    R2H --- R2GW
-  end
-  subgraph R3["RACK 3 · VLAN 30"]
-    R3GW["GW 10.10.30.254<br/>leaf5(SRL)+leaf6(FRR)"]
-    R3H["host5 .1 · host6 .2"]
-    R3H --- R3GW
-  end
-  R1GW --- T["TENANT-A VRF<br/>VNI 50001<br/>inter-VLAN routing"]
-  R2GW --- T
-  R3GW --- T
-    </pre>
-  </div>
-
-  <!-- DCN BACKBONE -->
-  <div class="diagram-panel" id="d-dcn">
-    <div class="diagram-desc">
-      <b>DCN Lab — multi-region FRR backbone.</b> 5 core routers (full-mesh-ish) + 5 edge/dist devices,
-      hub-and-spoke per region. eBGP between regions, mgmt 10.200.0.0/24. SNMP traps to 10.200.0.1:1162.
-    </div>
-    <pre class="mermaid">
-flowchart TB
-  subgraph CORE["CORE · multi-region eBGP"]
-    C1["de-fra-core-01<br/>AS65001 · .11"]
-    C2["de-fra-core-02<br/>AS65002 · .12"]
-    C3["uk-lon-core-01<br/>AS65003 · .13"]
-    C4["nl-ams-core-01<br/>AS65004 · .14"]
-    C5["us-nyc-core-01<br/>AS65005 · .15"]
-  end
-  C1 --- C2 & C3 & C4
-  C2 --- C4 & C5
-  C3 --- C4 & C5
-  C1 --- C5
-  C1 --- E1["de-fra-edge-01<br/>AS65006 · .21"]
-  C1 --- D1["de-fra-dist-01<br/>AS65009 · .33"]
-  C2 --- E1 & D1
-  C3 --- E2["uk-lon-edge-01<br/>AS65007 · .22"]
-  C3 --- DI2["uk-lon-dist-01<br/>AS65010 · .31"]
-  C4 --- E3["nl-ams-edge-01<br/>AS65008 · .23"]
-  C5 --- E2
-  D1 --- E1
-    </pre>
-  </div>
-</div>
-
-<!-- ═══════════ DIAGRAM ═══════════ -->
-<div class="section" id="sec-diagram">
-  <h2>Interactive Fabric Diagram</h2>
-  <iframe class="embed" src="fabric-diagram.html"></iframe>
-  <p style="margin-top:12px;font-size:12px;color:#8899aa">Source: <code>docs/fabric-diagram.html</code></p>
-</div>
-
-<!-- ═══════════ CONFIGURATIONS ═══════════ -->
-<div class="section" id="sec-configs">
-  <h2>Device Configurations</h2>
-
-  <h3 style="color:#ff6b6b;margin:16px 0 12px">Spines</h3>
-  <div class="config-list">
-    <div class="config-item" onclick="loadConfig('spine/spine1-srl.cfg','spine1')">
-      <h4><span class="tag srl">SRL</span> spine1-srl.cfg</h4>
-      <div class="meta">AS 65100 &bull; Route Reflector &bull; eBGP underlay + EVPN overlay</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('spine/spine2-ceos.cfg','spine2')">
-      <h4><span class="tag ceos">cEOS</span> spine2-ceos.cfg</h4>
-      <div class="meta">AS 65100 &bull; Route Reflector &bull; SNMP traps enabled</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('spine/spine3-frr.conf','spine3')">
-      <h4><span class="tag frr">FRR</span> spine3-frr.conf</h4>
-      <div class="meta">AS 65100 &bull; eBGP EVPN overlay (per-leaf AS, no RR-client)</div>
-    </div>
-  </div>
-
-  <h3 style="color:#00e87a;margin:24px 0 12px">Leafs</h3>
-  <div class="config-list">
-    <div class="config-item" onclick="loadConfig('leaf/leaf1-ceos.cfg','leaf1')">
-      <h4><span class="tag ceos">cEOS</span><span class="tag vlan10">V10</span> leaf1-ceos.cfg</h4>
-      <div class="meta">AS 65001 &bull; VTEP &bull; ESI-LAG Port-Channel &bull; IRB Vlan10</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('leaf/leaf2-srl.cfg','leaf2')">
-      <h4><span class="tag srl">SRL</span><span class="tag vlan10">V10</span> leaf2-srl.cfg</h4>
-      <div class="meta">AS 65002 &bull; VTEP &bull; LAG + ethernet-segment &bull; mac-vrf-10 + ip-vrf</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('leaf/leaf3-frr.conf','leaf3')">
-      <h4><span class="tag frr">FRR</span><span class="tag vlan20">V20</span> leaf3-frr.conf</h4>
-      <div class="meta">AS 65003 &bull; VTEP &bull; evpn mh es-id &bull; Linux bridge VXLAN</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('leaf/leaf4-ceos.cfg','leaf4')">
-      <h4><span class="tag ceos">cEOS</span><span class="tag vlan20">V20</span> leaf4-ceos.cfg</h4>
-      <div class="meta">AS 65004 &bull; VTEP &bull; ESI-LAG Port-Channel &bull; IRB Vlan20</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('leaf/leaf5-srl.cfg','leaf5')">
-      <h4><span class="tag srl">SRL</span><span class="tag vlan30">V30</span> leaf5-srl.cfg</h4>
-      <div class="meta">AS 65005 &bull; VTEP &bull; LAG + ethernet-segment &bull; mac-vrf-30 + ip-vrf</div>
-    </div>
-    <div class="config-item" onclick="loadConfig('leaf/leaf6-frr.conf','leaf6')">
-      <h4><span class="tag frr">FRR</span><span class="tag vlan30">V30</span> leaf6-frr.conf</h4>
-      <div class="meta">AS 65006 &bull; VTEP &bull; evpn mh es-id &bull; Linux bridge VXLAN</div>
-    </div>
-  </div>
-
-  <h3 style="color:#fff;margin:24px 0 12px">Topology File</h3>
-  <div class="config-list">
-    <div class="config-item" onclick="loadConfig('../topologies/clos-evpn.clab.yml','topology')">
-      <h4>clos-evpn.clab.yml</h4>
-      <div class="meta">Containerlab topology &bull; 15 nodes &bull; 30 links &bull; ESI-LAG host bonding</div>
-    </div>
-  </div>
-
-  <div id="config-viewer" style="display:none;margin-top:24px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 id="config-title" style="color:#00d4ff"></h3>
-      <button onclick="document.getElementById('config-viewer').style.display='none'" style="background:#1a2840;color:#8899aa;border:none;padding:6px 12px;border-radius:6px;cursor:pointer">Close</button>
-    </div>
-    <pre id="config-content" style="background:#0a0e17;border:1px solid #1a2840;border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#c8d6e5;overflow-x:auto;max-height:60vh;overflow-y:auto"></pre>
-  </div>
-</div>
-
-<!-- ═══════════ CONNECTIVITY ═══════════ -->
-<div class="section" id="sec-connectivity">
-  <h2>Connectivity Matrix (30/30 Verified)</h2>
-
-  <div class="matrix">
-    <table>
-      <tr><th></th><th>host1<br><small>V10</small></th><th>host2<br><small>V10</small></th><th>host3<br><small>V20</small></th><th>host4<br><small>V20</small></th><th>host5<br><small>V30</small></th><th>host6<br><small>V30</small></th></tr>
-      <tr><td><strong>host1</strong></td><td class="cell-self">&mdash;</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td></tr>
-      <tr><td><strong>host2</strong></td><td class="cell-ok">OK</td><td class="cell-self">&mdash;</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td></tr>
-      <tr><td><strong>host3</strong></td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-self">&mdash;</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td></tr>
-      <tr><td><strong>host4</strong></td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-self">&mdash;</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td></tr>
-      <tr><td><strong>host5</strong></td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-self">&mdash;</td><td class="cell-ok">OK</td></tr>
-      <tr><td><strong>host6</strong></td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-ok">OK</td><td class="cell-self">&mdash;</td></tr>
-    </table>
-  </div>
-
-  <h2 style="margin-top:32px">IPv6 Underlay Reachability</h2>
-  <p style="font-size:13px;color:#8899aa;margin-bottom:16px">All 9 loopbacks (fd00:dc1::1 through fd00:dc1::16) are reachable over the IPv6 underlay. Each spine-leaf link carries both an IPv4 /31 and an IPv6 /127. Dedicated IPv6 BGP neighbors exchange IPv6 unicast routes independently of the IPv4 sessions. Verify with: <code>ping6 -c1 fd00:dc1::1</code> from any leaf.</p>
-
-  <h2 style="margin-top:32px">Protocol Stack</h2>
-  <table>
-    <tr><th>Layer</th><th>Protocol</th><th>Details</th></tr>
-    <tr><td>Underlay</td><td>eBGP IPv4 + IPv6 dual-stack</td><td>18 IPv4 sessions + 18 IPv6 sessions (3 spines &times; 6 leafs). Per-leaf ASN. Loopback redistribution via route-map EXPORT_LO. IPv6 uses dedicated native neighbors on global P2P addresses (fd00:dc1::/48)</td></tr>
-    <tr><td>Overlay</td><td>eBGP EVPN</td><td>18 sessions (leaf loopbacks &rarr; spine RRs via multihop). Type-1 AD, Type-2 MAC/IP, Type-3 IMET, Type-4 ES, Type-5 Prefix</td></tr>
-    <tr><td>Data Plane</td><td>VXLAN</td><td>L2 VNIs: 10010 (VLAN10), 10020 (VLAN20), 10030 (VLAN30). L3 VNI: 50001 (TENANT-A)</td></tr>
-    <tr><td>Multihoming</td><td>EVPN-MH / ESI-LAG</td><td>6 Ethernet Segments, all-active forwarding. LACP (802.3ad) or active-backup bonds</td></tr>
-    <tr><td>L3 Gateway</td><td>Anycast IRB</td><td>Virtual MAC 00:00:5E:00:53:01 shared across leaf pairs. Symmetric IRB via L3 VNI 50001</td></tr>
-    <tr><td>Monitoring</td><td>SNMPv2c</td><td>Community GESH-DC1-RO, traps to 172.20.20.1:1162</td></tr>
-  </table>
-</div>
-
-<!-- ═══════════ DRIVER LAYER ═══════════ -->
-<div class="section" id="sec-drivers">
-  <h2>Multi-Vendor Driver Abstraction (<code>src/drivers/</code>)</h2>
-
-  <div class="cards">
-    <div class="card">
-      <h3>Hybrid Architecture</h3>
-      <p>Deterministic per-vendor drivers handle data collection (no LLM guesses CLI syntax). The LLM only does what it's good at &mdash; root-cause synthesis on structured/raw output. This guarantees a predictable data frame before it ever reaches the analysis layer.</p>
-    </div>
-    <div class="card">
-      <h3>Dual Output</h3>
-      <p>Every driver method returns a <code>DriverResult</code> with <code>.normalized</code> (dict &rarr; Grafana/InfluxDB metrics) AND <code>.raw</code> (text &rarr; LLM context). Normalize for machines, raw for the model.</p>
-    </div>
-    <div class="card">
-      <h3>Single Source of Truth</h3>
-      <p>Command tables + parsers live once in <code>drivers/</code>. Both <code>health.py</code> (dashboard) and <code>clab_collector.py</code> (telemetry) consume them &mdash; no more drift between the two.</p>
-    </div>
-  </div>
-
-  <div class="topo"><pre>
-                    ┌──────────────────────────────────────────────┐
-                    │         get_driver(vendor, transport)        │
-                    │              factory.py + aliases            │
-                    └───────────────────┬──────────────────────────┘
-                                        ▼
-                    ┌──────────────────────────────────────────────┐
-                    │       <span class="leaf">BaseNetworkDriver</span> (ABC) — base.py        │
-                    │  get_bgp_summary() get_interface_counters()  │
-                    │  get_health()  run_command()  → <span class="host">DriverResult</span>  │
-                    │       (.normalized dict  +  .raw text)       │
-                    └───────┬──────────────┬──────────────┬────────┘
-            ┌───────────────┘              │              └───────────────┐
-            ▼                              ▼                              ▼
-   ┌────────────────┐          ┌────────────────┐          ┌────────────────┐
-   │  <span class="spine">FRRDriver</span>     │          │  <span class="spine">EOSDriver</span>     │          │  <span class="spine">SRLDriver</span>     │
-   │  _parse()      │          │  _parse()      │          │  _parse()      │
-   └───────┬────────┘          └───────┬────────┘          └───────┬────────┘
-           └────────────────────────────┼────────────────────────────┘
-                                        ▼
-                    ┌──────────────────────────────────────────────┐
-                    │    Transport (protocol) — transport.py       │
-                    │  DockerExecTransport  → vtysh / Cli / sr_cli │
-                    │  SSHRunnerTransport   → wraps run_command()  │
-                    │  ScrapliTransport     → (planned, SSH NOS)   │
-                    └──────────────────────────────────────────────┘
-
-   parsers.py: parse_bgp / ospf / interfaces / interface_counters / routes / version
-               vendor-tagged · soft-fail (never raise) · fixed normalized shapes
-  </pre></div>
-
-  <h2 style="margin-top:32px">Driver Methods</h2>
-  <table>
-    <tr><th>Method</th><th>Returns</th><th>Normalized shape</th></tr>
-    <tr><td><code>get_bgp_summary()</code></td><td>DriverResult</td><td>{peers[], established, total}</td></tr>
-    <tr><td><code>get_ospf_neighbors()</code></td><td>DriverResult</td><td>{neighbors[], full, total}</td></tr>
-    <tr><td><code>get_interface_status()</code></td><td>DriverResult</td><td>{list[], up, total}</td></tr>
-    <tr><td><code>get_interface_counters()</code></td><td>DriverResult</td><td>{interfaces[{in_octets, out_octets, in_packets, ...}]}</td></tr>
-    <tr><td><code>get_routes()</code></td><td>DriverResult</td><td>{total, by_protocol{}}</td></tr>
-    <tr><td><code>get_health()</code></td><td>dict</td><td>{meta, version, bgp, ospf, interfaces, routes}</td></tr>
-    <tr><td><code>run_command(cmd)</code></td><td>DriverResult</td><td>{} (raw passthrough)</td></tr>
-  </table>
-
-  <h2 style="margin-top:32px">Per-Vendor CLI Translation</h2>
-  <table>
-    <tr><th>Vendor</th><th>Driver</th><th>Transport argv</th><th>Output format</th></tr>
-    <tr><td><span class="tag srl">SRL</span> nokia-srl</td><td>SRLDriver</td><td><code>sr_cli -d "&lt;cmd&gt;"</code></td><td>flat tables (text parse)</td></tr>
-    <tr><td><span class="tag ceos">cEOS</span> arista-eos</td><td>EOSDriver</td><td><code>Cli -p 15 -c "&lt;cmd&gt; | json"</code></td><td>JSON</td></tr>
-    <tr><td><span class="tag frr">FRR</span> frr</td><td>FRRDriver</td><td><code>vtysh -c "&lt;cmd&gt; json"</code></td><td>JSON</td></tr>
-    <tr><td><span class="tag" style="background:#c678dd22;color:#c678dd">JUNOS</span> junos</td><td>JunosDriver</td><td><code>cli -c "&lt;cmd&gt; | display json"</code></td><td>JSON (deeply nested [{data}])</td></tr>
-    <tr><td><span class="tag" style="background:#00bcd422;color:#00bcd4">IOS-XR</span> cisco-iosxr</td><td>IOSXRDriver</td><td><code>"&lt;cmd&gt; | json"</code> &rarr; text fallback</td><td>Cisco text tables (JSON 7.x best-effort)</td></tr>
-  </table>
-
-  <h2 style="margin-top:32px">Why This Design</h2>
-  <table>
-    <tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr>
-    <tr><td>Collection</td><td>Deterministic drivers</td><td>LLM guessing CLI syntax or touching devices is an operational liability. Drivers enforce predictable commands.</td></tr>
-    <tr><td>Analysis</td><td>LLM on raw + normalized</td><td>Model does pattern-matching / root-cause synthesis on a known data frame &mdash; what it's actually good at.</td></tr>
-    <tr><td>Abstraction</td><td>ABC class pattern (not Jinja2)</td><td>Jinja2 is for config patches. OO driver classes are cleaner for operational retrieval &mdash; drop in a new vendor class without touching core routing.</td></tr>
-    <tr><td>Transport</td><td>Injected (not imported)</td><td>Drivers never import flask/paramiko/scrapli at module top &mdash; collector runs on a lab host without them. Transport is a constructor arg.</td></tr>
-    <tr><td>New vendor</td><td>~24-line driver class</td><td>Add JunosDriver/IOSXRDriver: set vendor + commands, implement _parse(). Factory + registry pick it up.</td></tr>
-    <tr><td>Failure model</td><td>Soft-fail, never raise</td><td>Parsers return fixed empty shapes on bad input. One wedged command never gates the whole snapshot.</td></tr>
-  </table>
-
-  <p style="font-size:12px;color:#8899aa;margin-top:8px">61/61 driver tests pass. Wired into <code>health.py</code> (dashboard command tables) and <code>clab_collector.py</code> (telemetry probes + interface counters &rarr; InfluxDB).</p>
-</div>
-
-<!-- ═══════════ OPERATIONS ═══════════ -->
-<div class="section" id="sec-operations">
-  <h2>Quick Commands</h2>
-
-  <h3 style="margin:16px 0 12px;color:#fff">Portal Service (launchd)</h3>
-  <div class="cmd">
-    <span class="label">What runs this page</span>
-    <code>This portal is served by a launchd agent <b>com.geshlab.portal</b><br>
-(RunAtLoad + KeepAlive) bound to <b>http://127.0.0.1:8099</b>.<br>
-Script: containerlab-multivendor/scripts/start_portal.sh &nbsp;·&nbsp; Log: /tmp/geshlab_portal.log</code>
-  </div>
-  <div class="cmd">
-    <span class="label">Status</span>
-    <code>launchctl list | grep geshlab.portal</code>
-  </div>
-  <div class="cmd">
-    <span class="label">Restart</span>
-    <code>launchctl bootout gui/$(id -u)/com.geshlab.portal<br>
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.geshlab.portal.plist</code>
-  </div>
-  <div class="cmd">
-    <span class="label">Tail log</span>
-    <code>tail -f /tmp/geshlab_portal.log</code>
-  </div>
-
-  <h3 style="margin:24px 0 12px;color:#fff">Fabric Lifecycle</h3>
-  <div class="cmd">
-    <span class="label">Deploy (from macOS)</span>
-    <code>LABPATH=~/02_Projects/.../containerlab-multivendor<br>
-docker run --rm --privileged --network host --pid host \<br>
-&nbsp;&nbsp;-v /var/run/docker.sock:/var/run/docker.sock \<br>
-&nbsp;&nbsp;-v /run/netns:/run/netns -v "$LABPATH:$LABPATH" \<br>
-&nbsp;&nbsp;-w "$LABPATH/topologies" --entrypoint /usr/bin/containerlab \<br>
-&nbsp;&nbsp;ghcr.io/srl-labs/clab:latest deploy -t clos-evpn.clab.yml</code>
-  </div>
-  <div class="cmd">
-    <span class="label">Destroy</span>
-    <code>... ghcr.io/srl-labs/clab:latest destroy -t clos-evpn.clab.yml --cleanup</code>
-  </div>
-  <div class="cmd">
-    <span class="label">Check all containers</span>
-    <code>docker ps --filter "name=clab-clos" --format "table {{.Names}}\t{{.Status}}"</code>
-  </div>
-
-  <h3 style="margin:24px 0 12px;color:#fff">BGP Verification</h3>
-  <div class="cmd">
-    <span class="label">SRL (spine1, leaf2, leaf5)</span>
-    <code>docker exec clab-clos-evpn-spine1 bash -c 'sr_cli "show network-instance default protocols bgp neighbor"'</code>
-  </div>
-  <div class="cmd">
-    <span class="label">cEOS (spine2, leaf1, leaf4)</span>
-    <code>docker exec clab-clos-evpn-spine2 Cli -p 15 -c "show bgp evpn summary"</code>
-  </div>
-  <div class="cmd">
-    <span class="label">FRR (spine3, leaf3, leaf6)</span>
-    <code>docker exec clab-clos-evpn-spine3 vtysh -c "show bgp summary"</code>
-  </div>
-
-  <h3 style="margin:24px 0 12px;color:#fff">EVPN Verification</h3>
-  <div class="cmd">
-    <span class="label">SRL EVPN routes</span>
-    <code>docker exec clab-clos-evpn-leaf2 bash -c 'sr_cli "show network-instance mac-vrf-10 bridge-table mac-table all"'</code>
-  </div>
-  <div class="cmd">
-    <span class="label">cEOS EVPN routes</span>
-    <code>docker exec clab-clos-evpn-leaf1 Cli -p 15 -c "show bgp evpn"</code>
-  </div>
-  <div class="cmd">
-    <span class="label">cEOS VRF routes (inter-VLAN)</span>
-    <code>docker exec clab-clos-evpn-leaf1 Cli -p 15 -c "show ip route vrf TENANT-A"</code>
-  </div>
-
-  <h3 style="margin:24px 0 12px;color:#fff">Host Verification</h3>
-  <div class="cmd">
-    <span class="label">Check bond status</span>
-    <code>docker exec clab-clos-evpn-host1 cat /proc/net/bonding/bond0</code>
-  </div>
-  <div class="cmd">
-    <span class="label">Ping matrix (all 30 paths)</span>
-    <code>for s in 1 2 3 4 5 6; do for d in 1 2 3 4 5 6; do [ $s -ne $d ] && echo -n "h${s}→h${d}: " && docker exec clab-clos-evpn-host$s ping -c1 -W1 10.10.$((( (d-1)/2 *10+10 ))).$(( (d-1)%2+1 )) 2>&1|grep -oE "[0-9]+ received"; done; done</code>
-  </div>
-</div>
-
-<!-- ═══════════ DOCUMENTATION ═══════════ -->
-<div class="section" id="sec-docs">
-  <h2>Documentation</h2>
-
-  <div class="cards">
-    <div class="card">
-      <h3>Architecture Diagram</h3>
-      <p>Interactive visual architecture of the multi-vendor DC fabric with protocol overlays and node details.</p>
-      <a href="architecture.html" target="_blank">Open architecture.html &rarr;</a>
-    </div>
-    <div class="card">
-      <h3>Fabric Diagram</h3>
-      <p>Live topology view with spine-leaf connections, SNMP agents, and management IPs.</p>
-      <a href="fabric-diagram.html" target="_blank">Open fabric-diagram.html &rarr;</a>
-    </div>
-    <div class="card">
-      <h3>IP Plan</h3>
-      <p>Complete IP addressing plan including loopbacks, P2P links, management, and VXLAN VTEPs.</p>
-      <a href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/IP_PLAN.md" target="_blank">Open IP_PLAN.md &rarr;</a>
-    </div>
-  </div>
-
-  <h2 style="margin-top:32px">Design Decisions</h2>
-  <table>
-    <tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr>
-    <tr><td>Underlay</td><td>eBGP (not OSPF/IS-IS)</td><td>RFC 7938 &mdash; simpler ops, per-leaf failure domains, no IGP LSA floods</td></tr>
-    <tr><td>Overlay</td><td>eBGP EVPN (not iBGP)</td><td>Each leaf keeps its own AS for EVPN. Avoids AS-swap hacks needed for iBGP on FRR 8.4</td></tr>
-    <tr><td>IRB model</td><td>Symmetric IRB</td><td>Single L3 VNI (50001) for all inter-VLAN traffic. Scales to N VLANs without N&sup2; tunnels</td></tr>
-    <tr><td>Anycast MAC</td><td>00:00:5E:00:53:01</td><td>Single shared MAC across all leafs &mdash; hosts see consistent gateway regardless of active leaf</td></tr>
-    <tr><td>host6 bond</td><td>active-backup (not LACP)</td><td>FRR 8.4 container lacks kernel VRF module &mdash; L3 VNI decap fails. Force traffic to SRL leaf5</td></tr>
-    <tr><td>SRL LAG type</td><td>static (not LACP)</td><td>multitool host containers don't run lldpad/lacpd &mdash; LACP negotiation times out</td></tr>
-    <tr><td>clab deploy</td><td>--pid host</td><td>Docker Desktop macOS lacks /run/netns. --pid host gives clab container access to LinuxKit VM PID namespace</td></tr>
-  </table>
-
-  <h2 style="margin-top:32px">Known Limitations</h2>
-  <table>
-    <tr><th>Issue</th><th>Impact</th><th>Workaround</th></tr>
-    <tr><td>FRR container no kernel VRF</td><td>L3 VNI 50001 can't be decapsulated on FRR leafs</td><td>host6 bond primary set to SRL leaf5; FRR handles L2 only</td></tr>
-    <tr><td>SRL startup-config not auto-loading</td><td>SRL nodes boot blank &mdash; need manual sr_cli push</td><td>Push configs via sr_cli heredoc after deploy</td></tr>
-    <tr><td>cEOS interface numbering</td><td>clab maps et1/et2/et3 which may not match config Ethernet1/2/3</td><td>Verify with <code>show ip interface brief</code> after deploy</td></tr>
-    <tr><td>Docker Desktop netns</td><td><code>clab deploy</code> fails without --pid host</td><td>Always use <code>--pid host</code> flag with clab Docker image</td></tr>
-  </table>
-</div>
-
 <script>
-// startOnLoad:false — Mermaid must NOT render blocks while their panels are
-// display:none (zero-width container -> "Syntax error" bomb). We render each
-// diagram lazily the first time its panel becomes visible (see renderDiagram).
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  themeVariables: {
-    background: '#0d1520', primaryColor: '#0d1520', primaryBorderColor: '#00d4ff',
-    primaryTextColor: '#c8d6e5', lineColor: '#4a5568', fontSize: '13px',
-    clusterBkg: '#0a0e17', clusterBorder: '#1a2840',
-  },
-  flowchart: { curve: 'basis', nodeSpacing: 40, rankSpacing: 55 },
-});
+const DEVICES = [
+  {h:"de-fra-fw-01",ip:"10.200.1.1",v:"juniper",m:"SRX345",r:"firewall",s:"DE-FRA",os:"junos",live:0,bgp:[3,3]},
+  {h:"uk-lon-fw-01",ip:"10.200.2.1",v:"juniper",m:"SRX345",r:"firewall",s:"UK-LON",os:"junos",live:0,bgp:[3,3]},
+  {h:"nl-ams-fw-01",ip:"10.200.3.1",v:"juniper",m:"SRX345",r:"firewall",s:"NL-AMS",os:"junos",live:0,bgp:[3,3]},
+  {h:"us-nyc-fw-01",ip:"10.200.5.1",v:"juniper",m:"SRX345",r:"firewall",s:"US-NYC",os:"junos",live:0,bgp:[3,3]},
+  {h:"de-fra-mx-01",ip:"10.200.1.10",v:"juniper",m:"MX204",r:"core",s:"DE-FRA",os:"junos",live:0,bgp:[3,3]},
+  {h:"eu-cdg-mx-01",ip:"10.200.4.10",v:"juniper",m:"MX960",r:"core",s:"EU-CDG",os:"junos",live:0,bgp:[3,3]},
+  {h:"de-fra-ex-01",ip:"10.200.1.20",v:"juniper",m:"EX4600",r:"dist",s:"DE-FRA",os:"junos",live:0,bgp:[3,3]},
+  {h:"de-fra-ex-02",ip:"10.200.1.21",v:"juniper",m:"EX4600",r:"access",s:"DE-FRA",os:"junos",live:0,bgp:[3,3]},
+  {h:"uk-lon-ex-01",ip:"10.200.2.20",v:"juniper",m:"EX4600",r:"dist",s:"UK-LON",os:"junos",live:0,bgp:[3,3]},
+  {h:"nl-ams-ex-01",ip:"10.200.3.20",v:"juniper",m:"EX4600",r:"dist",s:"NL-AMS",os:"junos",live:0,bgp:[3,3]},
+  {h:"nl-ams-eos-rt-01",ip:"10.200.3.11",v:"arista",m:"DCS-7280CR3K",r:"edge",s:"NL-AMS",os:"eos",live:0,bgp:[3,3]},
+  {h:"de-fra-eos-rt-01",ip:"10.200.1.11",v:"arista",m:"DCS-7280CR3K",r:"edge",s:"DE-FRA",os:"eos",live:0,bgp:[3,3]},
+  {h:"eu-cdg-eos-rt-01",ip:"10.200.4.11",v:"arista",m:"DCS-7280CR3K",r:"edge",s:"EU-CDG",os:"eos",live:0,bgp:[3,3]},
+  {h:"nl-ams-eos-sw-01",ip:"10.200.3.21",v:"arista",m:"DCS-7050CX3",r:"leaf",s:"NL-AMS",os:"eos",live:0,bgp:[3,3]},
+  {h:"de-fra-eos-sw-01",ip:"10.200.1.22",v:"arista",m:"DCS-7050CX3",r:"leaf",s:"DE-FRA",os:"eos",live:0,bgp:[3,3]},
+  {h:"us-nyc-eos-rt-01",ip:"10.200.5.11",v:"arista",m:"DCS-7280CR3K",r:"edge",s:"US-NYC",os:"eos",live:0,bgp:[3,3]},
+  {h:"de-fra-core-01",ip:"10.200.0.11",v:"frr",m:"FRR-MX960",r:"core",s:"DE-FRA",os:"frr",live:1,as:65001,bgp:[5,5]},
+  {h:"de-fra-core-02",ip:"10.200.0.12",v:"frr",m:"FRR-MX480",r:"core",s:"DE-FRA",os:"frr",live:1,as:65002,bgp:[3,3]},
+  {h:"uk-lon-core-01",ip:"10.200.0.13",v:"frr",m:"FRR-MX204",r:"core",s:"UK-LON",os:"frr",live:1,as:65003,bgp:[3,3]},
+  {h:"nl-ams-core-01",ip:"10.200.0.14",v:"frr",m:"FRR-7280",r:"core",s:"NL-AMS",os:"frr",live:1,as:65004,bgp:[2,2]},
+  {h:"us-nyc-core-01",ip:"10.200.0.15",v:"frr",m:"FRR-7280",r:"core",s:"US-NYC",os:"frr",live:1,as:65005,bgp:[1,1]},
+  {h:"de-fra-edge-01",ip:"10.200.0.21",v:"frr",m:"FRR-SRX",r:"edge",s:"DE-FRA",os:"frr",live:1,as:65006,bgp:[2,2]},
+  {h:"uk-lon-edge-01",ip:"10.200.0.22",v:"frr",m:"FRR-EOS",r:"edge",s:"UK-LON",os:"frr",live:1,as:65007,bgp:[1,1]},
+  {h:"nl-ams-edge-01",ip:"10.200.0.23",v:"frr",m:"FRR-MX",r:"edge",s:"NL-AMS",os:"frr",live:1,as:65008,bgp:[1,1]},
+  {h:"uk-lon-dist-01",ip:"10.200.0.31",v:"frr",m:"FRR-EX",r:"dist",s:"UK-LON",os:"frr",live:1,as:65010,bgp:[1,1]},
+  {h:"de-fra-dist-01",ip:"10.200.0.33",v:"frr",m:"FRR-EX",r:"dist",s:"DE-FRA",os:"frr",live:1,as:65009,bgp:[1,1]},
+  {h:"spine1",ip:"172.20.20.11",v:"nokia",m:"SR-Linux-IXR-D3L",r:"spine",s:"CLAB-DC1",os:"srl",live:1,as:65100,bgp:[12,12]},
+  {h:"spine2",ip:"172.20.20.12",v:"arista",m:"cEOS-4.33.1F",r:"spine",s:"CLAB-DC1",os:"eos",live:1,as:65100,bgp:[12,12]},
+  {h:"spine3",ip:"172.20.20.13",v:"frr",m:"FRR-v8.4",r:"spine",s:"CLAB-DC1",os:"frr",live:1,as:65100,bgp:[12,12]},
+  {h:"leaf1",ip:"172.20.20.21",v:"arista",m:"cEOS-4.33.1F",r:"leaf",s:"CLAB-DC1",os:"eos",live:1,as:65001,bgp:[6,6]},
+  {h:"leaf2",ip:"172.20.20.22",v:"nokia",m:"SR-Linux-IXR-D3L",r:"leaf",s:"CLAB-DC1",os:"srl",live:1,as:65002,bgp:[6,6]},
+  {h:"leaf3",ip:"172.20.20.23",v:"frr",m:"FRR-v8.4",r:"leaf",s:"CLAB-DC1",os:"frr",live:1,as:65003,bgp:[6,6]},
+  {h:"leaf4",ip:"172.20.20.24",v:"arista",m:"cEOS-4.33.1F",r:"leaf",s:"CLAB-DC1",os:"eos",live:1,as:65004,bgp:[6,6]},
+  {h:"leaf5",ip:"172.20.20.25",v:"nokia",m:"SR-Linux-IXR-D3L",r:"leaf",s:"CLAB-DC1",os:"srl",live:1,as:65005,bgp:[6,6]},
+  {h:"leaf6",ip:"172.20.20.26",v:"frr",m:"FRR-v8.4",r:"leaf",s:"CLAB-DC1",os:"frr",live:1,as:65006,bgp:[6,6]},
+  {h:"host1",ip:"172.20.20.31",v:"linux",m:"multitool",r:"host",s:"CLAB-DC1",os:"linux",live:1,bgp:[0,0]},
+  {h:"host2",ip:"172.20.20.32",v:"linux",m:"multitool",r:"host",s:"CLAB-DC1",os:"linux",live:1,bgp:[0,0]},
+  {h:"host3",ip:"172.20.20.33",v:"linux",m:"multitool",r:"host",s:"CLAB-DC1",os:"linux",live:1,bgp:[0,0]},
+  {h:"host4",ip:"172.20.20.34",v:"linux",m:"multitool",r:"host",s:"CLAB-DC1",os:"linux",live:1,bgp:[0,0]},
+  {h:"host5",ip:"172.20.20.35",v:"linux",m:"multitool",r:"host",s:"CLAB-DC1",os:"linux",live:1,bgp:[0,0]},
+  {h:"host6",ip:"172.20.20.36",v:"linux",m:"multitool",r:"host",s:"CLAB-DC1",os:"linux",live:1,bgp:[0,0]}
+];
+const LINKS = [
+  ["de-fra-core-01","de-fra-core-02","iBGP"],["de-fra-core-01","uk-lon-core-01","eBGP"],
+  ["de-fra-core-02","nl-ams-core-01","eBGP"],["de-fra-core-01","us-nyc-core-01","eBGP"],
+  ["de-fra-core-01","de-fra-edge-01","eBGP"],["de-fra-core-02","de-fra-edge-01","eBGP"],
+  ["uk-lon-core-01","uk-lon-edge-01","eBGP"],["nl-ams-core-01","nl-ams-edge-01","eBGP"],
+  ["uk-lon-core-01","uk-lon-dist-01","eBGP"],["de-fra-core-01","de-fra-dist-01","eBGP"]
+];
+["spine1","spine2","spine3"].forEach(s=>["leaf1","leaf2","leaf3","leaf4","leaf5","leaf6"].forEach(l=>LINKS.push([s,l,"eBGP"])));
+[["host1","leaf1"],["host2","leaf2"],["host3","leaf3"],["host4","leaf4"],["host5","leaf5"],["host6","leaf6"]].forEach(([a,b])=>LINKS.push([a,b,"access"]));
+const LINK_UP = LINKS.map(()=>true);
 
-// Render the mermaid block inside a now-visible panel, once.
-async function renderDiagram(panel) {
-  if (!panel) return;
-  const pre = panel.querySelector('.mermaid');
-  if (!pre || pre.dataset.rendered === '1') return;
-  try {
-    await mermaid.run({ nodes: [pre] });
-    pre.dataset.rendered = '1';
-  } catch (e) { /* leave source visible if render fails */ }
+const MCP = [
+  ["list_devices",1,"Enumerate lab devices"],["run_command",1,"Vendor-dispatched CLI"],["get_config",1,"Running-config dump"],
+  ["bgp_status",1,"Normalized BGP summary"],["topology_snapshot",1,"Live BGP graph"],["mv_device_health",1,"Parallel health snapshot"],
+  ["compliance_scan",2,"BGP auth, prefix-limits"],["netbox_sot_drift",2,"Severity-tiered SoT drift"],["mv_clab_status",2,"Live clab fabric"],
+  ["mv_fabric_topology",2,"Physical + overlay topo"],["mv_gnmic_status",2,"gNMI sidecar freshness"],["mv_napalm_bgp",2,"NAPALM BGP"],
+  ["health_gate_apply",3,"RFC 6241 confirmed-commit"],["mv_change_closed_loop",3,"6-stage governed change"],
+  ["mv_auto_status",3,"Auto-remediate loop"],["mv_auto_queue",3,"Pending actions"],["mv_auto_approve",3,"Approve MED/HIGH"],
+  ["mv_auto_decline",3,"Decline + GAIT reason"],["gait_recent_actions",4,"Append-only audit"],
+  ["mv_anomaly_detect",4,"ADTK z-score + flaps"],["mv_forecast_fleet",4,"TimesFM / Holt-Winters"],
+  ["mv_chaos_bgp",4,"Dual-fabric chaos"]
+];
+const CLI = [
+  ["Juniper","junos","BGP","show bgp summary","BGP neighbor state, prefixes, flaps."],
+  ["Juniper","junos","Commit","commit confirmed 5","RFC 6241 confirmed-commit, 5-min window."],
+  ["Juniper","junos","OSPF","show ospf neighbor","OSPF adjacency state and area."],
+  ["Arista","eos","EVPN","show bgp evpn summary","L2VPN EVPN session state on cEOS."],
+  ["Arista","eos","VXLAN","show vxlan vtep","VTEP table for the EVPN overlay."],
+  ["Arista","eos","Interface","show interfaces status","Port status, VLAN, duplex, speed."],
+  ["FRR","frr","BGP","vtysh -c 'show ip bgp summary'","FRR BGP neighbor table."],
+  ["FRR","frr","EVPN","vtysh -c 'show bgp l2vpn evpn summary'","EVPN overlay on FRR VTEPs."],
+  ["FRR","frr","Clear","vtysh -c 'clear ip bgp * soft'","Soft-clear all BGP sessions."],
+  ["Nokia","srlinux","BGP","show network-instance default protocols bgp neighbor","SR Linux BGP neighbor state."],
+  ["Nokia","srlinux","gNMI","info from state / system","State datastore dump used by gnmic."],
+  ["Cisco","ios","BGP","show ip bgp summary","IOS BGP neighbor status."],
+  ["Cisco","iosxr","BGP","show bgp summary","IOS-XR BGP summary."]
+];
+const XLAT = {
+  bgp_summary:{junos:"show bgp summary",eos:"show ip bgp summary",frr:"vtysh -c 'show ip bgp summary'",ios:"show ip bgp summary",srl:"show network-instance default protocols bgp neighbor"},
+  ospf_neighbors:{junos:"show ospf neighbor",eos:"show ip ospf neighbor",frr:"vtysh -c 'show ip ospf neighbor'",ios:"show ip ospf neighbor",srl:"show network-instance default protocols ospf neighbor"},
+  interface_status:{junos:"show interfaces terse",eos:"show interfaces status",frr:"vtysh -c 'show interface brief'",ios:"show ip interface brief",srl:"show interface"},
+  running_config:{junos:"show configuration | display set",eos:"show running-config",frr:"vtysh -c 'show running-config'",ios:"show running-config",srl:"info"},
+  lldp_neighbors:{junos:"show lldp neighbors",eos:"show lldp neighbors",frr:"vtysh -c 'show lldp neighbors'",ios:"show lldp neighbors",srl:"show system lldp neighbor"}
+};
+const RUNBOOKS = [
+  {id:"bgp_flap_reset",risk:"LOW",ok:13,n:14,desc:"Soft-clear a BGP peer after repeated flaps."},
+  {id:"ospf_area_mismatch_fix",risk:"MEDIUM",ok:4,n:4,desc:"Restore an interface OSPF area to SoT."},
+  {id:"interface_error_spike",risk:"LOW",ok:9,n:9,desc:"Clear counters on a rising error-rate interface."},
+  {id:"mtu_drift_fix",risk:"MEDIUM",ok:2,n:3,desc:"Restore interface MTU from SoT."},
+  {id:"route_leak_prefix_cap",risk:"HIGH",ok:2,n:2,desc:"Apply maximum-prefix when a peer's prefix count spikes."},
+  {id:"cpu_spike_collect",risk:"LOW",ok:11,n:11,desc:"Collect top control-plane processes. Diagnostic only."},
+  {id:"mac_flap_stormcontrol",risk:"CRIT",ok:1,n:1,desc:"Broadcast storm-control on a MAC-move storm."},
+  {id:"port_admin_down_fix",risk:"MEDIUM",ok:4,n:5,desc:"Re-enable a port that drifted admin-down vs SoT."}
+];
+const CVE = [
+  ["juniper","junos","CVE-2024-21617","high",7.5,"SRX Series: Memory leak via crafted IPv6 fragments"],
+  ["juniper","junos","CVE-2022-22241","critical",9.8,"SRX/EX J-Web pre-auth RCE"],
+  ["arista","eos","CVE-2023-24544","high",7.5,"BGP UPDATE path attribute crash"],
+  ["arista","eos","CVE-2021-28508","critical",9.8,"Unauthenticated REST API access"],
+  ["frr","frr","CVE-2023-31490","high",7.5,"bgpd OOB read on extended community"],
+  ["frr","frr","CVE-2023-46752","medium",6.5,"bgpd remote crash via crafted MP_REACH"]
+];
+const SOT_EXTRA = {h:"uk-lon-fw-02",ip:"10.200.2.2",v:"juniper",m:"SRX345",r:"firewall",s:"UK-LON",note:"In NetBox, missing from running inventory"};
+const SOT_IP = {h:"de-fra-core-01",obs:"10.200.0.11",sot:"10.200.0.99",note:"IP drift vs SoT"};
+const STAGES = ["Predict","Batfish","Apply","Watch","POST diff","Intent"];
+
+const S = {
+  selected:"spine1",
+  queue:[
+    {id:"ar-1",rb:"route_leak_prefix_cap",h:"spine2",risk:"HIGH",st:"pending_approval",why:"bgp_prefix_count z=4.6 over 15m"},
+    {id:"ar-2",rb:"mtu_drift_fix",h:"de-fra-core-01",risk:"MEDIUM",st:"pending_approval",why:"mtu 1500 vs SoT 9000 on FRA-LON"},
+    {id:"ar-3",rb:"bgp_flap_reset",h:"leaf3",risk:"LOW",st:"executed",why:"flap_count 7 / 15m leaf3↔spine1"},
+    {id:"ar-4",rb:"mac_flap_stormcontrol",h:"spine1",risk:"CRIT",st:"paged",why:"mac_move_count 22 / 5m rack-1"}
+  ],
+  gait:[
+    ["auto-remediate","execute","leaf3","bgp_flap_reset · LOW · APPROVED in 11.4s"],
+    ["operator","approve","spine2","route_leak_prefix_cap · HIGH · CHG-4412"],
+    ["mcp","diagnose","de-fra-core-01","Incident agent · BGP HoldTimerExpired"],
+    ["health-gate","rollback","leaf1","Watch window regression · BGP 5/6 · revert 6.1s"],
+    ["auto-remediate","page","spine1","CRIT MAC flap storm · webhook only"]
+  ],
+  pipe:null, pipeI:-1, pipeBad:false, logs:[]
+};
+
+function healthOf(d){
+  if(d.r==="host") return "up";
+  const [up,tot]=d.bgp;
+  return up===tot?"up":up===0?"down":"degraded";
 }
+function netDevs(){return DEVICES.filter(d=>d.r!=="host")}
+function liveNet(){return DEVICES.filter(d=>d.live && d.r!=="host")}
+function pending(){return S.queue.filter(q=>q.st==="pending_approval")}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&","<":"<",">":">","\"":"""}[c]))}
+function pill(h){const k=healthOf(h);return `<span class="pill ${k==="up"?"up":k==="down"?"dn":"deg"}">${k}</span>`}
+function rsk(r){return `<span class="${r==="LOW"?"low":r==="MEDIUM"?"med":r==="HIGH"?"high":"crit"}">${r}</span>`}
 
-function show(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
-  document.querySelectorAll('.topbar nav a').forEach(a => a.classList.remove('active'));
-  if (window.event && event.target) event.target.classList.add('active');
-  // when the Diagrams section opens, render whichever panel is active
-  if (id === 'diagrams') renderDiagram(document.querySelector('.diagram-panel.active'));
+function neighbors(h){
+  const o=[];
+  LINKS.forEach((l,i)=>{ if(!LINK_UP[i]) return; if(l[0]===h)o.push(l[1]); else if(l[1]===h)o.push(l[0]); });
+  return [...new Set(o)];
 }
-
-function showDiagram(id, btn) {
-  document.querySelectorAll('.diagram-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.diagram-tabs button').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  renderDiagram(document.getElementById(id));
-}
-
-function loadConfig(path, name) {
-  // PUBLIC Pages copy: device configs live in the repo and are fetched from
-  // GitHub raw (Pages serves only /docs, so the original '../configs/' path
-  // cannot resolve here). raw.githubusercontent.com sends ACAO:* -> CORS ok.
-  const viewer = document.getElementById('config-viewer');
-  const title = document.getElementById('config-title');
-  const content = document.getElementById('config-content');
-  title.textContent = name + ' \u2014 ' + path;
-  content.textContent = 'Loading\u2026';
-  viewer.style.display = 'block';
-  var SUB  = 'containerlab-multivendor/';
-  var rel  = path.indexOf('../') === 0 ? path.slice(3) : 'configs/' + path;
-  var raw  = 'https://raw.githubusercontent.com/gesh75/multivendor-ai-network-lab/main/' + SUB + rel;
-  var blob = 'https://github.com/gesh75/multivendor-ai-network-lab/blob/main/' + SUB + rel;
-  fetch(raw, { cache: 'no-store' })
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(function (text) { content.textContent = text; })
-    .catch(function () {
-      // safe DOM build (no innerHTML); rel/blob derive only from static paths
-      content.textContent = 'Inline fetch unavailable. Open on GitHub: ';
-      var a = document.createElement('a');
-      a.href = blob; a.target = '_blank'; a.rel = 'noopener';
-      a.style.color = '#00d4ff'; a.textContent = rel + ' \u2192';
-      content.appendChild(a);
-    });
-}
-
-// Live fabric-status badge — replaces the formerly hardcoded "FABRIC UP" with a
-// real reading from the :5757 API (/api/mv/clab-status). Cross-origin (portal is
-// :8099), so the backend must whitelist :8099 in _CORS_ORIGINS; if the API is
-// unreachable or CORS-blocked we show "FABRIC ?" rather than a misleading green.
-(function () {
-  var API = 'http://127.0.0.1:5757';
-  var el = document.getElementById('fabric-status');
-  if (!el) return;
-  function refresh() {
-    fetch(API + '/api/mv/clab-status', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function (d) {
-        var nodes = d.nodes || {};
-        var names = Object.keys(nodes);
-        var healthy = names.filter(function (n) { return nodes[n].healthy; }).length;
-        var bgp = names.reduce(function (s, n) { return s + (nodes[n].bgp_up || 0); }, 0);
-        var stale = !!d.stale;
-        var live = names.length > 0 && healthy > 0 && !stale;
-        el.className = 'status ' + (live ? 'up' : 'down');
-        el.textContent = live
-          ? ('FABRIC UP · ' + healthy + '/' + names.length + ' · ' + bgp + ' BGP')
-          : (stale ? 'FABRIC STALE' : 'FABRIC DOWN · ' + healthy + '/' + names.length);
-        el.title = 'clab-status: healthy ' + healthy + '/' + names.length + ', ' + bgp
-          + ' BGP up, stale=' + stale + ', age ' + Math.round(d.age_sec || 0) + 's';
-      })
-      .catch(function (e) {
-        el.className = 'status down';
-        el.textContent = 'FABRIC ?';
-        el.title = 'Live status unavailable (' + e.message + '). Is the :5757 API up and :8099 CORS-allowed?';
-      });
+function pathTrace(src,dst){
+  if(src===dst) return [src];
+  const q=[[src]], seen=new Set([src]);
+  while(q.length){
+    const p=q.shift(), last=p[p.length-1];
+    for(const n of neighbors(last)){
+      if(seen.has(n)) continue;
+      const nx=[...p,n];
+      if(n===dst) return nx;
+      seen.add(n); q.push(nx);
+    }
   }
-  refresh();
-  setInterval(refresh, 20000);
-})();
+  return null;
+}
+function blast(h,hops=2){
+  const seen=new Set([h]); let frontier=[h];
+  for(let i=0;i<hops;i++){
+    const next=[];
+    frontier.forEach(x=>neighbors(x).forEach(n=>{ if(!seen.has(n)){seen.add(n);next.push(n)} }));
+    frontier=next;
+  }
+  return [...seen];
+}
+function setLink(a,b,up){
+  LINKS.forEach((l,i)=>{ if((l[0]===a&&l[1]===b)||(l[0]===b&&l[1]===a)) LINK_UP[i]=up; });
+  const da=DEVICES.find(d=>d.h===a), db=DEVICES.find(d=>d.h===b);
+  [da,db].forEach(d=>{
+    if(!d || d.r==="host") return;
+    const down=LINKS.filter((l,i)=>!LINK_UP[i] && (l[0]===d.h||l[1]===d.h) && l[2]!=="access").length;
+    d.bgp[0]=Math.max(0,d.bgp[1]-down);
+  });
+}
+function log(msg){ S.gait.unshift(["portal", "event", S.selected, msg]); S.logs.unshift(msg); }
+
+function kpis(){
+  const live=liveNet();
+  const up=live.filter(d=>healthOf(d)==="up").length;
+  const p=pending().length;
+  return `<div class="kpis">
+    <div class="kpi"><b>${up}/${live.length}</b><span>live net up</span></div>
+    <div class="kpi"><b>${netDevs().length}</b><span>inventory</span></div>
+    <div class="kpi"><b>69</b><span>MCP tools</span></div>
+    <div class="kpi"><b>9,802</b><span>CLI corpus</span></div>
+    <div class="kpi ${p?"warn":""}"><b>${p}</b><span>awaiting approval</span></div>
+    <div class="kpi"><b>v0.6.0</b><span>Phase 6 · ANL L4</span></div>
+  </div>`;
+}
+
+function command(){
+  return `<div class="top"><div>
+    <p class="eyebrow">Closed-loop NetOps</p>
+    <h1 class="grad">26-device multivendor lab</h1>
+    <p class="lede">Observe, diagnose, remediate, verify, document. Phase 6 is live: anomalies auto-trigger the six-stage change pipeline, risk-gated. LOW executes, MEDIUM/HIGH queue for approval, CRITICAL pages out and never auto-acts.</p>
+    <div class="actions">
+      <button class="btn pri" onclick="injectFlap('leaf3')">Inject BGP flap</button>
+      <button class="btn" onclick="injectLeak('spine2')">Inject prefix leak</button>
+      <button class="btn" onclick="startPipe('leaf1', true)">Drill rollback</button>
+      <a class="btn" href="https://github.com/gesh75/multivendor-ai-network-lab" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn" href="index.html">Docs site</a>
+    </div>
+  </div></div>
+  ${kpis()}
+  <div class="panel note">GitHub Pages is static. The old fabric badge polled <code>127.0.0.1:5757/api/mv/clab-status</code>, so the public web rendered <b>0 / FABRIC ?</b>. This snapshot bakes the 2026-05-25 live audit: <b>19 network devices · 41/41 clab BGP · 20/20 endpoints green</b>. Repo is at v0.6.0, 69 MCP tools, 34/34 Phase-6 tests.</div>
+  <div class="grid2">
+    <div class="panel"><h2>Risk gate</h2>
+      <table><thead><tr><th>Tier</th><th>Action</th></tr></thead><tbody>
+        <tr><td class="low">LOW</td><td>Auto-execute through Health Gate</td></tr>
+        <tr><td class="med">MEDIUM</td><td>Queue — one-click approve</td></tr>
+        <tr><td class="high">HIGH</td><td>Queue — blast-radius review</td></tr>
+        <tr><td class="crit">CRITICAL</td><td>Page-out webhook. Never auto-acts.</td></tr>
+      </tbody></table>
+    </div>
+    <div class="panel"><h2>Phases</h2>
+      <p class="lede">0–6 done. Phase 7 backlog: eval corpus, runbook demotion, production NetBox, Redis, secrets, cross-MCP.</p>
+      <p style="margin-top:10px;font-size:13px;color:var(--muted)">TM Forum ANL <b style="color:var(--ink)">L4</b> · AI-SRE <b style="color:var(--ink)">5/5</b></p>
+    </div>
+  </div>`;
+}
+
+function posMap(){
+  const pos={};
+  [["spine1",180,40],["spine2",360,40],["spine3",540,40],
+   ["leaf1",80,150],["leaf2",180,150],["leaf3",280,150],["leaf4",380,150],["leaf5",480,150],["leaf6",580,150],
+   ["host1",80,250],["host2",180,250],["host3",280,250],["host4",380,250],["host5",480,250],["host6",580,250],
+   ["de-fra-core-01",760,50],["de-fra-core-02",880,50],["uk-lon-core-01",1000,50],
+   ["nl-ams-core-01",760,140],["us-nyc-core-01",880,140],
+   ["de-fra-edge-01",1000,140],["uk-lon-edge-01",760,230],["nl-ams-edge-01",880,230],
+   ["de-fra-dist-01",1000,230],["uk-lon-dist-01",1120,140]].forEach(([h,x,y])=>pos[h]=[x,y]);
+  return pos;
+}
+function topology(){
+  const pos=posMap();
+  const lines=LINKS.map((l,i)=>{
+    const a=pos[l[0]], b=pos[l[1]]; if(!a||!b) return "";
+    const col=LINK_UP[i]?(l[2]==="access"?"#334155":"#60a5fa"):"#f87171";
+    const dash=l[2]==="access"?"4 4":"0";
+    return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${col}" stroke-width="1.4" stroke-dasharray="${dash}" opacity=".85"/>`;
+  }).join("");
+  const nodes=DEVICES.filter(d=>pos[d.h]).map(d=>{
+    const [x,y]=pos[d.h]; const k=healthOf(d);
+    const fill=k==="up"?"#34d399":k==="down"?"#f87171":"#fbbf24";
+    const r=d.r==="spine"?11:d.r==="host"?6:9;
+    return `<g class="node" onclick="S.selected='${d.h}';route()"><circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" opacity=".95"/><text x="${x}" y="${y+22}" text-anchor="middle" fill="#9aa7c7" font-size="10">${d.h}</text></g>`;
+  }).join("");
+  const br=blast(S.selected,2);
+  return `<div class="top"><div><p class="eyebrow">CLOS EVPN + FRR backbone</p><h1>Topology</h1>
+    <p class="lede">Click a node for blast radius. Flap drops the underlay; leak queues a HIGH prefix-cap. Selected: <b>${esc(S.selected)}</b> · radius ${br.length} nodes.</p>
+    <div class="actions">
+      <button class="btn pri" onclick="injectFlap(S.selected)">Flap selected</button>
+      <button class="btn" onclick="restoreAll()">Restore all links</button>
+    </div></div></div>
+    <svg class="topo" viewBox="0 0 1180 300">${lines}${nodes}</svg>
+    <p class="note">Left: containerlab CLOS (Nokia / cEOS / FRR). Right: docker-compose FRR DCN. Red link = down.</p>`;
+}
+
+function fleet(){
+  const q=(document.getElementById("fq")||{}).value||"";
+  const rows=netDevs().filter(d=>!q || (d.h+d.v+d.s+d.r).toLowerCase().includes(q.toLowerCase())).map(d=>`
+    <tr><td><code>${d.h}</code></td><td>${d.v}</td><td>${d.m}</td><td>${d.r}</td><td>${d.s}</td>
+    <td>${d.live?"live":"config"}</td><td>${d.bgp[0]}/${d.bgp[1]}</td><td>${pill(d)}</td></tr>`).join("");
+  return `<div class="top"><div><p class="eyebrow">Inventory</p><h1>Fleet</h1>
+    <p class="lede">${netDevs().length} network devices, ${liveNet().length} live. Sanitized configs use RFC 5737 / RFC 1918.</p></div></div>
+    <div class="filters"><input id="fq" placeholder="Filter host, vendor, site" oninput="route()" value="${esc(q)}"></div>
+    <div class="panel" style="overflow:auto"><table><thead><tr><th>Host</th><th>Vendor</th><th>Model</th><th>Role</th><th>Site</th><th>Mode</th><th>BGP</th><th>Health</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function traceV(){
+  const src=document.getElementById("ps")?.value || "host1";
+  const dst=document.getElementById("pd")?.value || "host6";
+  const opts=DEVICES.map(d=>`<option ${d.h===src?"selected":""}>${d.h}</option>`).join("");
+  const opt2=DEVICES.map(d=>`<option ${d.h===dst?"selected":""}>${d.h}</option>`).join("");
+  const path=pathTrace(src,dst);
+  return `<div class="top"><div><p class="eyebrow">BFS over BGP graph</p><h1>Path trace</h1>
+    <p class="lede">Vendor-colored hop-by-hop. Same algorithm as <code>/api/mv/path/trace</code>.</p></div></div>
+    <div class="filters">
+      <select id="ps" onchange="route()">${opts}</select>
+      <select id="pd" onchange="route()">${opt2}</select>
+    </div>
+    <div class="panel log">${path?path.join("  →  "):"No path (a link is down). Restore topology and retry."}</div>`;
+}
+
+function pipeline(){
+  const st=STAGES.map((s,i)=>{
+    const on=S.pipe && i===S.pipeI;
+    const done=S.pipe && i<S.pipeI;
+    const bad=S.pipeBad && i===S.pipeI && s==="Watch";
+    return `<div class="st ${on?"on":""} ${done?"ok":""} ${bad?"bad":""}"><b>${i+1}. ${s}</b></div>`;
+  }).join("");
+  return `<div class="top"><div><p class="eyebrow">POST /api/change/closed-loop</p><h1>Six-stage pipeline</h1>
+    <p class="lede">Predict → Batfish → Apply (Health Gate) → Watch 12s → POST diff → Intent. APPROVED in 12s live; ROLLED_BACK in 6s on induced regression.</p>
+    <div class="actions">
+      <button class="btn pri" onclick="startPipe('leaf1', false)">Run change</button>
+      <button class="btn" onclick="startPipe('leaf1', true)">Induce regression</button>
+    </div></div></div>
+    <div class="stage">${st}</div>
+    <div class="panel log">${(S.logs.slice(0,8).join("\n"))||"Idle. Start a change or a rollback drill."}</div>`;
+}
+
+function remediate(){
+  const rows=S.queue.map(q=>`<tr>
+    <td><code>${q.id}</code></td><td>${q.rb}</td><td>${q.h}</td><td>${rsk(q.risk)}</td><td>${q.st}</td><td>${esc(q.why)}</td>
+    <td>${q.st==="pending_approval"?`<button class="btn pri" onclick="approve('${q.id}')">Approve</button> <button class="btn" onclick="decline('${q.id}')">Decline</button>`:""}</td>
+  </tr>`).join("");
+  const rbs=RUNBOOKS.map(r=>`<div class="card"><h3>${r.id}</h3><p>${r.desc}</p><p style="margin-top:8px">${rsk(r.risk)} · ${r.ok}/${r.n} success</p></div>`).join("");
+  return `<div class="top"><div><p class="eyebrow">Phase 6</p><h1>Auto-remediate</h1>
+    <p class="lede">Anomaly → runbook → risk gate. Queue is client-side here; locally it is <code>/api/auto-remediate/*</code>.</p></div></div>
+    <div class="panel" style="overflow:auto"><table><thead><tr><th>ID</th><th>Runbook</th><th>Host</th><th>Risk</th><th>Status</th><th>Anomaly</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <h2 style="margin:18px 0 8px;font-size:16px">8-runbook catalog</h2>
+    <div class="cards">${rbs}</div>`;
+}
+
+function rag(){
+  const q=(document.getElementById("rq")||{}).value || "bgp summary";
+  const terms=q.toLowerCase().split(/[^a-z0-9]+/).filter(t=>t.length>1);
+  const scored=CLI.map(c=>{
+    const hay=(c.join(" ")).toLowerCase();
+    let s=0; terms.forEach(t=>{ if(hay.includes(t)) s+=1+(c[3].toLowerCase().includes(t)?1.2:0); });
+    return {c,s};
+  }).filter(x=>!terms.length||x.s>0).sort((a,b)=>b.s-a.s).slice(0,12);
+  const rows=scored.map(({c,s})=>`<tr><td>${c[0]}</td><td>${c[2]}</td><td><code>${esc(c[3])}</code></td><td>${esc(c[4])}</td><td>${s.toFixed(1)}</td></tr>`).join("");
+  return `<div class="top"><div><p class="eyebrow">BM25 · no embeddings</p><h1>CLI RAG</h1>
+    <p class="lede">Stdlib-only retrieval over 9,802 commands. This snapshot searches the featured 13-row slice.</p></div></div>
+    <div class="filters"><input id="rq" style="min-width:260px" value="${esc(q)}" oninput="route()" placeholder="bgp evpn, commit confirmed…"></div>
+    <div class="panel" style="overflow:auto"><table><thead><tr><th>Vendor</th><th>Cat</th><th>Command</th><th>Why</th><th>Score</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function mcpV(){
+  const rows=MCP.map(t=>`<tr><td><code>${t[0]}</code></td><td>T${t[1]}</td><td>${t[2]}</td></tr>`).join("");
+  return `<div class="top"><div><p class="eyebrow">FastMCP</p><h1>69 MCP tools</h1>
+    <p class="lede">Claude Code / Cursor call the lab directly. Featured surface below; full catalog in <code>docs/MCP_TOOLS.md</code>.</p></div></div>
+    <div class="panel" style="overflow:auto"><table><thead><tr><th>Tool</th><th>Tier</th><th>Purpose</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function translate(){
+  const task=document.getElementById("tt")?.value || "bgp_summary";
+  const row=XLAT[task];
+  const cells=Object.entries(row).map(([k,v])=>`<tr><td>${k}</td><td><code>${esc(v)}</code></td></tr>`).join("");
+  const opts=Object.keys(XLAT).map(k=>`<option ${k===task?"selected":""}>${k}</option>`).join("");
+  return `<div class="top"><div><p class="eyebrow">Canonical task → CLI</p><h1>Vendor translator</h1>
+    <p class="lede">Same map as <code>/api/mv/translator</code>.</p></div></div>
+    <div class="filters"><select id="tt" onchange="route()">${opts}</select></div>
+    <div class="panel"><table><thead><tr><th>OS</th><th>Command</th></tr></thead><tbody>${cells}</tbody></table></div>`;
+}
+
+function cveV(){
+  const rows=CVE.map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td><code>${c[2]}</code></td><td class="${c[3]==="critical"?"crit":c[3]==="high"?"high":"med"}">${c[3]} ${c[4]}</td><td>${esc(c[5])}</td></tr>`).join("");
+  return `<div class="top"><div><p class="eyebrow">Static lookup</p><h1>CVE scan</h1>
+    <p class="lede">Matches (vendor, OS) over the fleet. Junos 19.4R3 on de-fra-fw-01 is the critical hit.</p></div></div>
+    <div class="panel" style="overflow:auto"><table><thead><tr><th>Vendor</th><th>OS</th><th>CVE</th><th>Sev</th><th>Title</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function drift(){
+  return `<div class="top"><div><p class="eyebrow">NetBox SoT</p><h1>Drift</h1>
+    <p class="lede">Severity-tiered presence and field drift between inventory.json and observed state.</p></div></div>
+    <div class="panel"><table><thead><tr><th>Host</th><th>Severity</th><th>Finding</th></tr></thead><tbody>
+      <tr><td>${SOT_EXTRA.h}</td><td class="high">HIGH</td><td>${SOT_EXTRA.note} (${SOT_EXTRA.ip})</td></tr>
+      <tr><td>${SOT_IP.h}</td><td class="med">MEDIUM</td><td>${SOT_IP.note}: SoT ${SOT_IP.sot} vs observed ${SOT_IP.obs}</td></tr>
+      <tr><td>nl-ams-core-01</td><td class="med">MEDIUM</td><td>Intent drift — NetBox claims peer 10.200.0.99 absent in running-config</td></tr>
+    </tbody></table></div>`;
+}
+
+function gait(){
+  const rows=S.gait.map(g=>`<tr><td>${g[0]}</td><td>${g[1]}</td><td>${g[2]}</td><td>${esc(g[3])}</td></tr>`).join("");
+  return `<div class="top"><div><p class="eyebrow">Append-only JSONL</p><h1>GAIT audit</h1>
+    <p class="lede">Every AI action with token cost. Local ledger is <code>src/gait_audit.py</code>.</p></div></div>
+    <div class="panel" style="overflow:auto"><table><thead><tr><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function docs(){
+  return `<div class="top"><div><p class="eyebrow">Reference</p><h1>Architecture</h1>
+    <p class="lede">Humans and agents drive a Flask monolith on :5757. Two labs sit underneath: Containerlab CLOS EVPN-VXLAN and a Docker Compose FRR backbone. Changes flow Predict → Blast radius → Health Gate → Watch → Verify, with RFC 6241 §8.4 confirmed-commit rollback.</p></div></div>
+    <div class="cards">
+      <a class="card" href="index.html"><h3>Docs homepage</h3><p>Animated architecture, data flow, quickstart.</p></a>
+      <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/CHANGE_PIPELINE.md" target="_blank" rel="noopener"><h3>CHANGE_PIPELINE.md</h3><p>Six-stage governed change.</p></a>
+      <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/PHASE6_PLAN.md" target="_blank" rel="noopener"><h3>PHASE6_PLAN.md</h3><p>Event-initiated remediation.</p></a>
+      <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener"><h3>Build your own lab</h3><p>macOS & Linux, including --pid host.</p></a>
+    </div>`;
+}
+
+const VIEWS={command,topology,fleet,trace:traceV,pipeline,remediate,rag,mcp:mcpV,translate,cve:cveV,drift,gait,docs};
+
+function route(){
+  const id=(location.hash||"#command").slice(1);
+  const fn=VIEWS[id]||command;
+  document.getElementById("view").innerHTML=fn();
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on", a.dataset.view===id));
+  document.getElementById("side").classList.remove("open");
+  const live=liveNet(); const up=live.filter(d=>healthOf(d)==="up").length;
+  document.getElementById("fab").textContent=`SNAPSHOT · ${up}/${live.length} live net · no :5757`;
+}
+
+function injectFlap(h){
+  const n=neighbors(h).find(x=>x.startsWith("spine")||x.includes("core")) || neighbors(h)[0];
+  if(n) setLink(h,n,false);
+  log(`BGP flap injected on ${h}${n?" ↔ "+n:""}. LOW runbook bgp_flap_reset auto-queued.`);
+  S.queue.unshift({id:"ar-"+Date.now().toString(36),rb:"bgp_flap_reset",h,risk:"LOW",st:"executed",why:"flap_count threshold"});
+  location.hash="#topology"; route();
+}
+function injectLeak(h){
+  log(`Prefix leak on ${h}. HIGH route_leak_prefix_cap queued for approval.`);
+  S.queue.unshift({id:"ar-"+Date.now().toString(36),rb:"route_leak_prefix_cap",h,risk:"HIGH",st:"pending_approval",why:"bgp_prefix_count z>4"});
+  location.hash="#remediate"; route();
+}
+function restoreAll(){ LINKS.forEach((_,i)=>LINK_UP[i]=true); DEVICES.forEach(d=>d.bgp[0]=d.bgp[1]); log("All links restored."); route(); }
+function approve(id){ const q=S.queue.find(x=>x.id===id); if(q){q.st="executed"; log("Approved "+id+" · Health Gate apply.");} route(); }
+function decline(id){ const q=S.queue.find(x=>x.id===id); if(q){q.st="declined"; log("Declined "+id);} route(); }
+function startPipe(h, bad){
+  S.pipe={h,bad}; S.pipeI=0; S.pipeBad=false; S.logs=["CHG start on "+h+(bad?" · regression drill":"")];
+  location.hash="#pipeline"; route();
+  const tick=()=>{
+    if(S.pipeI>=STAGES.length){ S.logs.unshift(bad?"ROLLED_BACK in 6s (watch-window BGP drop).":"APPROVED in 12s · intent verified."); S.pipe=null; route(); return; }
+    const name=STAGES[S.pipeI];
+    if(bad && name==="Watch"){ S.pipeBad=true; S.logs.unshift("Watch: BGP 5/6 — Health Gate reverting (RFC 6241)."); route(); S.pipeI=STAGES.length; setTimeout(tick,700); return; }
+    S.logs.unshift(name+" · ok");
+    S.pipeI++; route();
+    setTimeout(tick, 520);
+  };
+  setTimeout(tick, 400);
+}
+
+window.addEventListener("hashchange", route);
+document.getElementById("menuBtn").onclick=()=>document.getElementById("side").classList.toggle("open");
+route();
 </script>
 </body>
 </html>
