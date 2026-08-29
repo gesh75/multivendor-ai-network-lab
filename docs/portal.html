@@ -135,9 +135,20 @@
   </aside>
   <main class="main">
     <button class="btn menu" id="menuBtn" type="button">☰ Menu</button>
-    <div id="view"></div>
+    <div id="view">
+      <p class="eyebrow">Closed-loop NetOps</p>
+      <h1 class="grad">26-device multivendor lab</h1>
+      <p class="lede">Loading Lab Ops console… If this message stays, JavaScript failed to parse. Hard-refresh (Ctrl/Cmd-Shift-R).</p>
+    </div>
   </main>
 </div>
+<script>
+window.addEventListener("error", function(e){
+  var v=document.getElementById("view");
+  if(!v) return;
+  v.innerHTML='<div class="panel"><p class="eyebrow">Portal</p><h1>Script error</h1><p class="lede">'+String((e&&e.message)||e)+'</p></div>';
+});
+</script>
 <script>
 const DEVICES = [
   {h:"de-fra-fw-01",ip:"10.200.1.1",v:"juniper",m:"SRX345",r:"firewall",s:"DE-FRA",os:"junos",live:0,bgp:[3,3]},
@@ -274,7 +285,15 @@ function healthOf(d){
 function netDevs(){return DEVICES.filter(d=>d.r!=="host")}
 function liveNet(){return DEVICES.filter(d=>d.live && d.r!=="host")}
 function pending(){return S.queue.filter(q=>q.st==="pending_approval")}
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&","<":"<",">":">","\"":"""}[c]))}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(ch){
+    if(ch==="&") return "&#38;";
+    if(ch==="<") return "&#60;";
+    if(ch===">") return "&#62;";
+    if(ch==='"') return "&#34;";
+    return "&#39;";
+  });
+}
 function pill(h){const k=healthOf(h);return `<span class="pill ${k==="up"?"up":k==="down"?"dn":"deg"}">${k}</span>`}
 function rsk(r){return `<span class="${r==="LOW"?"low":r==="MEDIUM"?"med":r==="HIGH"?"high":"crit"}">${r}</span>`}
 
@@ -513,25 +532,48 @@ function gait(){
 
 function docs(){
   return `<div class="top"><div><p class="eyebrow">Reference</p><h1>Architecture</h1>
-    <p class="lede">Humans and agents drive a Flask monolith on :5757. Two labs sit underneath: Containerlab CLOS EVPN-VXLAN and a Docker Compose FRR backbone. Changes flow Predict → Blast radius → Health Gate → Watch → Verify, with RFC 6241 §8.4 confirmed-commit rollback.</p></div></div>
+    <p class="lede">Humans (this UI, Telegram) and agents (Claude Code over MCP) drive a Flask monolith on :5757. Two labs sit underneath: Containerlab CLOS EVPN-VXLAN and a Docker Compose FRR backbone. Changes flow Predict → Blast radius → Health Gate → Watch → Verify, with RFC 6241 §8.4 confirmed-commit rollback. Telemetry lands in InfluxDB 2.7 / Grafana 10.4.</p></div></div>
+    <div class="grid2">
+      <div class="panel"><h2>Health Gate</h2>
+        <p class="lede">State machine: PreSnapshot → Applied → Watching → Confirmed | RolledBack. Watch window is 12 seconds in the live lab. Any BGP drop, OSPF loss, or error-rate spike reverts the candidate config. The LLM never has direct config-push authority.</p>
+      </div>
+      <div class="panel"><h2>Drivers</h2>
+        <p class="lede">BaseNetworkDriver template method. get_driver() maps FRR / EOS / SRL / Junos / IOS-XR onto a frozen DriverResult. Transports: docker-exec (clab), SSH/vtysh (FRR), NETCONF (Junos), eAPI (cEOS), sr_cli (SRL), gNMI subscribe on three Nokia spines/leafs.</p>
+      </div>
+    </div>
+    <div class="panel"><h2>Status · 2026-08-29</h2>
+      <table><thead><tr><th>Track</th><th>State</th></tr></thead><tbody>
+        <tr><td>Phase 0–6</td><td class="low">done · v0.6.0 · ANL L4 · AI-SRE 5/5</td></tr>
+        <tr><td>Live audit (2026-05-25)</td><td>19 network devices · 41/41 clab BGP · 20/20 endpoints green</td></tr>
+        <tr><td>Inventory</td><td>35 devices (26 network + 9 config-only Junos/EOS) · 6 sites</td></tr>
+        <tr><td>MCP</td><td>69 tools across 4 tiers</td></tr>
+        <tr><td>CLI corpus</td><td>9,802 commands, BM25, no embeddings</td></tr>
+        <tr><td>Phase 7 backlog</td><td class="med">eval corpus · runbook demotion · production NetBox · Redis · secrets · cross-MCP</td></tr>
+      </tbody></table>
+    </div>
     <div class="cards">
       <a class="card" href="index.html"><h3>Docs homepage</h3><p>Animated architecture, data flow, quickstart.</p></a>
       <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/CHANGE_PIPELINE.md" target="_blank" rel="noopener"><h3>CHANGE_PIPELINE.md</h3><p>Six-stage governed change.</p></a>
       <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/PHASE6_PLAN.md" target="_blank" rel="noopener"><h3>PHASE6_PLAN.md</h3><p>Event-initiated remediation.</p></a>
-      <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener"><h3>Build your own lab</h3><p>macOS & Linux, including --pid host.</p></a>
+      <a class="card" href="https://github.com/gesh75/multivendor-ai-network-lab/blob/main/docs/BUILD_YOUR_OWN_LAB.md" target="_blank" rel="noopener"><h3>Build your own lab</h3><p>macOS and Linux, including --pid host.</p></a>
     </div>`;
 }
 
 const VIEWS={command,topology,fleet,trace:traceV,pipeline,remediate,rag,mcp:mcpV,translate,cve:cveV,drift,gait,docs};
 
 function route(){
-  const id=(location.hash||"#command").slice(1);
-  const fn=VIEWS[id]||command;
-  document.getElementById("view").innerHTML=fn();
-  document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on", a.dataset.view===id));
-  document.getElementById("side").classList.remove("open");
-  const live=liveNet(); const up=live.filter(d=>healthOf(d)==="up").length;
-  document.getElementById("fab").textContent=`SNAPSHOT · ${up}/${live.length} live net · no :5757`;
+  try{
+    const raw=(location.hash||"#command").replace(/^#/,"");
+    const id=raw || "command";
+    const fn=VIEWS[id]||command;
+    document.getElementById("view").innerHTML=fn();
+    document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on", a.dataset.view===id));
+    document.getElementById("side").classList.remove("open");
+    const live=liveNet(); const up=live.filter(d=>healthOf(d)==="up").length;
+    document.getElementById("fab").textContent="SNAPSHOT · "+up+"/"+live.length+" live net · 41/41 clab BGP";
+  }catch(err){
+    document.getElementById("view").innerHTML='<div class="panel"><p class="eyebrow">Portal</p><h1>View error</h1><pre class="log">'+String(err)+'</pre></div>';
+  }
 }
 
 function injectFlap(h){
