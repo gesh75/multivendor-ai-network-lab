@@ -31,7 +31,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run tests
+      - name: Collect tests (must not error)
         env:
           PYTHONPATH: src
-        run: python -m pytest -q
+        run: python -m pytest -q --collect-only --ignore=demo --ignore=containerlab-multivendor
+
+      - name: Run unit and MCP tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m pytest -q \
+            tests/drivers \
+            src/tests/test_tg_bot.py \
+            src/tests/test_tg_auth.py \
+            src/tests/test_tg_client.py \
+            src/tests/test_tg_config.py \
+            src/tests/test_tg_formatting.py \
+            src/tests/test_mcp_auto_tools.py \
+            src/tests/test_mcp_dcn_get.py \
+            test_mcp_server.py

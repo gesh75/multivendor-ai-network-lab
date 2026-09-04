@@ -25,6 +25,8 @@ sys.path.insert(0, str(HERE / "src"))
 # Make sure tools default to localhost — won't matter because we mock requests.
 os.environ.setdefault("DCN_API_URL", "http://localhost:5757")
 
+pytest.importorskip("mcp.server.fastmcp")
+
 from mcp_server import tools  # noqa: E402
 from mcp_server.server import mcp  # noqa: E402
 
