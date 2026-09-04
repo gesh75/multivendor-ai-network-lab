@@ -21,7 +21,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "python-telegram-bot>=21.6",
+    "httpx>=0.27",
+]
 real = [
     "junos-eznc>=2.7",
     "pynetbox>=7.4",
@@ -41,6 +45,7 @@ where = ["src"]
 include = ["mcp_server*"]
 
 [tool.pytest.ini_options]
-testpaths = ["."]
+testpaths = ["src/tests", "tests", "."]
 python_files = ["test_*.py"]
+norecursedirs = [".git", ".venv", "venv", "node_modules", "demo", "containerlab-multivendor"]
 filterwarnings = ["ignore::DeprecationWarning"]
