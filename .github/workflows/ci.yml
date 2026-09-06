@@ -40,6 +40,9 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
+          # Allowlist: files proven green without a live Flask/API-key fixture.
+          # Flask POST suites (ai-command, batfish, nornir HTTP, cli-transport)
+          # still 503 when MVLAB_API_KEY is unset — see GAP_ANALYSIS.md.
           python -m pytest -q \
             tests/drivers \
             src/tests/test_tg_bot.py \
@@ -49,4 +52,15 @@ jobs:
             src/tests/test_tg_formatting.py \
             src/tests/test_mcp_auto_tools.py \
             src/tests/test_mcp_dcn_get.py \
-            test_mcp_server.py
+            src/tests/test_auto_remediate.py \
+            src/tests/test_preflight_twin.py \
+            src/tests/test_health.py \
+            test_mcp_server.py \
+            test_health_gate.py \
+            test_blast_radius.py \
+            test_remediation.py \
+            test_predict.py \
+            test_forecast.py \
+            test_postmortem.py \
+            test_cli_rag.py \
+            test_netbox_sot.py
