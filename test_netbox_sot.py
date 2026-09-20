@@ -98,8 +98,8 @@ class TestNormalize:
 class TestLoaders:
     def test_fetch_observed_returns_devices(self):
         obs = nbs.fetch_observed()
-        # inventory.json ships with 26 devices
-        assert len(obs) == 26
+        raw = json.loads(nbs.DEFAULT_OBSERVED_PATH.read_text(encoding="utf-8"))
+        assert len(obs) == len(raw.get("devices") or [])
         hostnames = {d["hostname"] for d in obs}
         assert "de-fra-core-01" in hostnames
         assert "nl-ams-edge-01" in hostnames

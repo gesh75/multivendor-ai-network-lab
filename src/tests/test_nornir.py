@@ -132,18 +132,20 @@ class TestNornirRun:
     def test_all_devices_targeted_when_no_site_filter(self):
         run_fn = self._make_run_fn()
         result = nornir_run(LAB_DEVICES, "bgp_health", site_filter="", run_fn=run_fn)
-        assert result["devices"] == 6
-        assert len(result["results"]) == 6
+        assert result["devices"] == len(LAB_DEVICES)
+        assert len(result["results"]) == len(LAB_DEVICES)
 
-    def test_site_filter_de_fra_returns_3_devices(self):
+    def test_site_filter_de_fra_returns_site_devices(self):
         run_fn = self._make_run_fn()
         result = nornir_run(LAB_DEVICES, "bgp_health", site_filter="DE-FRA", run_fn=run_fn)
-        assert result["devices"] == 3  # de-fra-core-01, de-fra-core-02, de-fra-edge-01
+        expected = sum(1 for d in LAB_DEVICES if d["site"].upper() == "DE-FRA")
+        assert result["devices"] == expected
 
-    def test_site_filter_uk_lon_returns_2_devices(self):
+    def test_site_filter_uk_lon_returns_site_devices(self):
         run_fn = self._make_run_fn()
         result = nornir_run(LAB_DEVICES, "bgp_health", site_filter="UK-LON", run_fn=run_fn)
-        assert result["devices"] == 2  # uk-lon-core-01, uk-lon-dist-01
+        expected = sum(1 for d in LAB_DEVICES if d["site"].upper() == "UK-LON")
+        assert result["devices"] == expected
 
     def test_site_filter_case_insensitive(self):
         run_fn = self._make_run_fn()
@@ -209,7 +211,7 @@ class TestNornirRun:
         run_fn = self._make_run_fn()
         for task_name in NORNIR_TASKS:
             result = nornir_run(LAB_DEVICES, task_name, run_fn=run_fn)
-            assert result["devices"] == 6
+            assert result["devices"] == len(LAB_DEVICES)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -220,23 +222,24 @@ class TestNornirEndpoint:
     """POST /api/nornir/run via Flask test client."""
 
     def test_bgp_health_all_devices(self, app_client, mock_ssh):
-        """Default task runs across all 6 lab devices."""
+        """Default task runs across the conftest lab inventory."""
         mock_ssh.return_value = {"success": True, "output": BGP_SUMMARY_OUTPUT, "command": "show bgp summary"}
 
         resp = app_client.post("/api/nornir/run", json={"task": "bgp_health", "workers": 6})
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["devices"] == 6
-        assert data["ok"] + data["warn"] + data["error"] == 6
+        assert data["devices"] == len(LAB_DEVICES)
+        assert data["ok"] + data["warn"] + data["error"] == len(LAB_DEVICES)
 
     def test_site_filter_de_fra(self, app_client, mock_ssh):
-        """DE-FRA site filter returns only DE-FRA devices (3)."""
+        """DE-FRA site filter returns only DE-FRA devices."""
         mock_ssh.return_value = {"success": True, "output": BGP_SUMMARY_OUTPUT, "command": "show bgp summary"}
 
         resp = app_client.post("/api/nornir/run", json={"task": "bgp_health", "site": "DE-FRA"})
         assert resp.status_code == 200
         data = resp.get_json()
-        assert data["devices"] == 3
+        expected = sum(1 for d in LAB_DEVICES if d["site"].upper() == "DE-FRA")
+        assert data["devices"] == expected
         hostnames = [r["hostname"] for r in data["results"]]
         assert all("de-fra" in h for h in hostnames)
 

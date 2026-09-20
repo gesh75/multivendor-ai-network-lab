@@ -13,9 +13,12 @@ authors = [{ name = "Georgi Gaydarov" }]
 keywords = ["network", "automation", "noc", "mcp", "ai", "claude", "netops"]
 dependencies = [
     "flask>=3.0",
+    "flask-cors>=6.0",
+    "python-dotenv>=1.0",
     "requests>=2.33.0",
     "cryptography>=49.0.0",
     "paramiko>=4.0.0",
+    "netmiko>=4.4",
     "pyyaml>=6.0",
     "mcp[cli]>=1.12,<2",
 ]
