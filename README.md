@@ -26,6 +26,7 @@
 > 8-runbook catalog · 6 endpoints · auto-remediation queue UI · 5 new MCP tools
 > (**~68 total**) · **34/34 tests**. Release:
 > [**v0.6.0**](https://github.com/gesh75/multivendor-ai-network-lab/releases/tag/v0.6.0).
+> _Version note: `pyproject.toml` on `main` is already bumped to `0.9.0` (unreleased work); the latest published release is **v0.6.0**._
 >
 > **🎯 Phase 5 (May 2026) — COMPLETE:** RAG · gNMI streaming (SRL) · ADTK anomaly
 > detection · 6-stage closed-loop pipeline · predictive forecast · 68 MCP tools ·
@@ -257,7 +258,7 @@ multivendor-ai-network-lab/
     └── 2026-05-05-multivendor-ai-features-design.md
 ```
 
-## Engineering notes &amp; production roadmap
+## Engineering notes & production roadmap
 
 This is a portfolio/demo lab — not a production system. Phase 3 modules
 follow modern Python hygiene: full type hints (PEP 604 syntax), Flask
